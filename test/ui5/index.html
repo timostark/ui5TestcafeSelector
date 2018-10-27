@@ -1,0 +1,46 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv='Content-Type' content='text/html;charset=UTF-8' />
+    <script src="https://sapui5.hana.ondemand.com/resources/sap-ui-core.js" id="sap-ui-bootstrap" data-sap-ui-libs="sap.ui.commons,sap.ui.table"
+        data-sap-ui-theme="sap_bluecrystal" data-sap-ui-xx-bindingSyntax="complex" data-sap-ui-resourceroots='{
+				"demo": "./"
+			}'></script>
+    <script>
+
+        var oModel = new sap.ui.model.json.JSONModel({
+            currentlog: '',
+            SeriesSet: [
+                { SeriesId: 'Test' },
+                { SeriesId: 'TestÄ' },
+                { SeriesId: 'Testß' },
+                { SeriesId: 'Test3' },
+                { SeriesId: 'Test4' },
+                { SeriesId: 'Test5' },
+                { SeriesId: 'Test6' },
+                { SeriesId: 'Test7' }]
+        });
+        var view = sap.ui.view({
+            id: "idFirstPage1",
+            viewName: "demo.FirstPage",
+            type: sap.ui.core.mvc.ViewType.XML
+        });
+        view.setModel(oModel, "test");
+
+        view.placeAt("content");
+        view.rerender();
+        view.byId("idComboBox").attachSelectionChange(null, function (oEvent) {
+            var sLog = "selection changed to " + (oEvent.getParameter("selectedItem") ? oEvent.getParameter("selectedItem").getId() : "null");
+            console.log(sLog);
+            oModel.setProperty("/currentlog", sLog);
+        });
+    </script>
+</head>
+
+<body class="sapUiBody" role="application">
+    <div id="content"></div>
+</body>
+
+</html>
