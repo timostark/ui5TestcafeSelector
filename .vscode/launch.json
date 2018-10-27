@@ -4,9 +4,9 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Nightcafe",
+            "protocol": "inspector",
+            "name": "Testcafe",
             "program": "${workspaceRoot}/node_modules/testcafe/bin/testcafe.js",
-            "stopOnEntry": false,
             "args": [
                 "chrome",
                 "${file}",
@@ -16,12 +16,6 @@
             ],
             "console": "integratedTerminal",
             "cwd": "${workspaceRoot}"
-        },
-        {
-            "type": "node",
-            "request": "attach",
-            "name": "Attach to Process",
-            "port": 5858
         }
     ]
 }
