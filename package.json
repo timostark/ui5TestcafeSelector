@@ -1,6 +1,6 @@
 {
   "name": "ui5-testcafe-selector",
-  "version": "0.0.16",
+  "version": "0.0.20",
   "description": "Testcafe Selector for UI5",
   "repository": "https://github.com/timostark/ui5TestcafeSelector",
   "main": "lib/index",
@@ -26,7 +26,7 @@
     "css-loader": "^0.28.7",
     "eslint": "^3.15.0",
     "eslint-plugin-testcafe": "^0.2.1",
-    "http-server": "^0.9.0",
+    "http-server": "^0.11.0",
     "publish-please": "^2.2.0",
     "pug": "^2.0.0-rc.4",
     "testcafe": "*"
