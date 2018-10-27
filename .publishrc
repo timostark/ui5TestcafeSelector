@@ -1,7 +1,7 @@
 {
   "validations": {
     "vulnerableDependencies": false,
-    "uncommittedChanges": true,
+    "uncommittedChanges": false,
     "untrackedFiles": true,
     "sensitiveData": true,
     "branch": "master",

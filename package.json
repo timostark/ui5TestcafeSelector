@@ -2,10 +2,7 @@
   "name": "ui5-testcafe-selector",
   "version": "0.0.5",
   "description": "Testcafe Selector for UI5",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/timostark/ui5TestcafeSelector.git"
-  },
+  "repository": "https://github.com/timostark/ui5TestcafeSelector",
   "scripts": {
     "lint": "eslint src/*.js",
     "http-server": "http-server ./ -s",
@@ -26,13 +23,7 @@
     "publish-please": "^2.2.0",
     "pug": "^2.0.0-rc.4",
     "testcafe": "*",
-    "vue": "^2.5.4",
-    "http-server": "^0.9.0",
-    "vue-loader": "^13.5.0",
-    "vue-router": "^3.0.1",
-    "vue-template-compiler": "^2.5.4",
-    "webpack": "^3.6.0",
-    "webpack-dev-server": "^2.9.1"
+    "http-server": "^0.9.0"
   },
   "keywords": [
     "ui5",

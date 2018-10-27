@@ -1,7 +1,6 @@
 import UI5Selector from '../lib/ui5-testcafe-selector';
-import { ClientFunction } from 'testcafe';
 
-fixture`vue-js`
+fixture`ui5-js`
     .page`http://localhost:8080/test/ui5/`;
 
 test('root node', async t => {
