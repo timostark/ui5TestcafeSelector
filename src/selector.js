@@ -176,6 +176,7 @@ export default Selector(id => {
 
         if (id.model) {
             for (var sModel in id.model) {
+                sModel = sModel === "undefined" ? undefined : sModel;
                 if (!oItem.getModel(sModel)) {
                     return false;
                 }
@@ -287,8 +288,6 @@ export default Selector(id => {
     if (typeof sap === "undefined" || typeof sap.ui === "undefined" || typeof sap.ui.getCore === "undefined" || !sap.ui.getCore() || !sap.ui.getCore().isInitialized()) {
         return [];
     }
-
-    debugger;
 
     if (typeof id !== "string") {
         if (JSON.stringify(id) == JSON.stringify({})) {
@@ -697,6 +696,7 @@ export default Selector(id => {
                 var oType = _oElementModelValues[oMetadata._sClassName];
                 if (oType) {
                     for (var sModel in oType) {
+                        sModel = sModel === "undefined" ? undefined : sModel;
                         oReturn.model[sModel] = {};
                         var oCurrentModel = oItem.getModel(sModel);
                         if (!oCurrentModel) {

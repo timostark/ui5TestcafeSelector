@@ -22,34 +22,43 @@ class Utils {
         return ClientFunction(() => {
             return new Promise(function (resolve) {
                 var oReturn = { "High": [], "Medium": [], "Low": [] };
+                var oComponentCpy;
+                if (sComponent) {
+                    oComponentCpy = {
+                        type: "components",
+                        components: [sComponent]
+                    };
+                }
                 sap.ui.require(["sap/ui/support/Bootstrap"], function (Bootstrap) {
                     Bootstrap.initSupportRules(["silent"]);
-                    jQuery.sap.support.analyze().then(function () {
-                        var aIssues = jQuery.sap.support.getLastAnalysisHistory();
-                        if (!aIssues) {
+                    setTimeout(function () {
+                        jQuery.sap.support.analyze(oComponentCpy).then(function () {
+                            var aIssues = jQuery.sap.support.getLastAnalysisHistory();
+                            if (!aIssues) {
+                                resolve(oReturn);
+                                return;
+                            }
+                            for (var i = 0; i < aIssues.issues.length; i++) {
+                                var oIssue = aIssues.issues[i];
+                                if (typeof oReturn[oIssue.severity] === "undefined") {
+                                    continue;
+                                }
+
+                                //ignore webpage scopes for the moment..
+                                if (oIssue.context && oIssue.context.id === 'WEBPAGE') {
+                                    continue;
+                                }
+
+                                oReturn[oIssue.severity].push({
+                                    severity: oIssue.severity,
+                                    context: oIssue.context,
+                                    details: oIssue.details
+                                });
+                            }
+
                             resolve(oReturn);
-                            return;
-                        }
-                        for (var i = 0; i < aIssues.issues.length; i++) {
-                            var oIssue = aIssues.issues[i];
-                            if (typeof oReturn[oIssue.severity] === "undefined") {
-                                continue;
-                            }
-
-                            //ignore webpage scopes for the moment..
-                            if (oIssue.context && oIssue.context.id === 'WEBPAGE') {
-                                continue;
-                            }
-
-                            oReturn[oIssue.severity].push({
-                                severity: oIssue.severity,
-                                context: oIssue.context,
-                                details: oIssue.details
-                            });
-                        }
-
-                        resolve(oReturn);
-                    });
+                        });
+                    }, 0);
 
                 });
             });
@@ -57,4 +66,4 @@ class Utils {
     }
 }
 
-export var utils = new Utils();
+export default new Utils();
