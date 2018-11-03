@@ -102,9 +102,24 @@ declare global {
          */
         getUI5(filter?: UI5SelectorCallback): UI5SelectorDef;
     };
+
+    interface SupportAssistantResultLine {
+        context: string,
+        details: string
+    };
+
+    interface SupportAssistantResult {
+        High: SupportAssistantResultLine[];
+        Medium: SupportAssistantResultLine[];
+        Low: SupportAssistantResultLine[];
+    };
+
+    interface Config {
+        launchpadLogin(t: TestController, userName: string, password: string) : void;
+        supportAssistant(t: TestController, componentNamem?: string): SupportAssistantResult;
+    };
 }
 
-
-
+export var config : Config   
 export function UI5Selector(id: UI5SelectorDef | string): Selector
 export function waitForUI5(): Promise<void>
