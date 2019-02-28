@@ -30,6 +30,18 @@ declare global {
         ui5AbsoluteId?: string
     };
 
+    interface UI5BindingDefProperty {
+        path: string
+    };
+
+    interface UI5PropertyDefMetadata {
+        [property: string]: string | number | boolean;
+    };
+
+    interface UI5BindingDefMetadata {
+        [binding: string]: UI5BindingDefProperty
+    };
+
     interface UI5SelectorDefMetadata {
         elementName?: string,
         componentName?: string
@@ -70,11 +82,13 @@ declare global {
          */
         context?: any,
 
-        binding?: any,
+        binding?: UI5BindingDefMetadata,
 
         itemdata?: any,
 
-        property?: any,
+        property?: UI5PropertyDefMetadata,
+
+        domChildWith?: string,
 
         /**
          * Information about the direct parent
@@ -95,8 +109,7 @@ declare global {
         children?: UI5SelectorDef[]
     };
 
-    type UI5SelectorCallback = (element: UI5SelectorDef) => any;
-
+    type UI5SelectorCallback = ({ element }: { element: any; }) => UI5SelectorDef;
 
     interface Selector {
         /**

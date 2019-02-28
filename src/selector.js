@@ -19,6 +19,43 @@ export default Selector(id => {
         },
         label: null
     };
+
+    var fnGetBindingInformation = function (oItem, sBinding) {
+        var oBindingInfo = oItem.getBindingInfo(sBinding);
+        var oBinding = oItem.getBinding(sBinding);
+        var oReturn = {};
+        if (!oBindingInfo) {
+            return oReturn;
+        }
+
+        //not really perfect for composite bindings (what we are doing here) - we are just returning the first for that..
+        //in case of a real use case --> enhance
+        var oRelevantPart = oBindingInfo;
+
+        if (oBindingInfo.parts && oBindingInfo.parts.length > 0) {
+            oRelevantPart = oBindingInfo.parts[0];
+        }
+
+        //get the binding context we are relevant for..
+        var oBndgContext = oItem.getBindingContext(oRelevantPart.model);
+        var sPathPre = oBndgContext ? oBndgContext.getPath() + "/" : "";
+
+        if (oBinding) {
+            oReturn = {
+                model: oRelevantPart.model,
+                path: oBinding.sPath && oBinding.getPath()
+            };
+
+            oReturn.path = sPathPre + oReturn.path;
+        } else {
+            oReturn = {
+                path: oBindingInfo.path,
+                model: oRelevantPart.model
+            };
+        }
+        return oReturn;
+    };
+
     var _getParentWithDom = function (oItem, iCounter) {
         oItem = oItem.getParent();
         while (oItem && oItem.getParent) {
@@ -197,11 +234,24 @@ export default Selector(id => {
             }
         }
 
+        if (id.bindingContext) {
+            for (var sModel in id.bindingContext) {
+                var oCtx = oItem.getBindingContext(sModel === "undefined" ? undefined : sModel);
+                if (!oCtx) {
+                    return false;
+                }
+
+                if (oCtx.getPath() !== id.bindingContext[sModel]) {
+                    return false;
+                }
+            }
+        }
+
         if (id.binding) {
             for (var sBinding in id.binding) {
-                var oAggrInfo = oItem.getBindingInfo(sBinding);
-                if (!oAggrInfo) {
-                    //SPECIAL CASE for sap.m.Label in Forms, where the label is actually bound against the parent element (yay)
+                var oBndgInfo = fnGetBindingInformation(oItem, sBinding);
+
+                if (oBndgInfo.path !== id.binding[sBinding].path) {
                     if (oItem.getMetadata().getElementName() === "sap.m.Label") {
                         if (oItem.getParent() && oItem.getParent().getMetadata()._sClassName === "sap.ui.layout.form.FormElement") {
                             var oParentBndg = oItem.getParent().getBinding("label");
@@ -213,17 +263,6 @@ export default Selector(id => {
                         }
                     } else {
                         return false;
-                    }
-                } else {
-                    var oBinding = oItem.getBinding(sBinding);
-                    if (!oBinding) {
-                        if (oAggrInfo.path !== id.binding[sBinding].path) {
-                            return false;
-                        }
-                    } else {
-                        if (oBinding.getPath() !== id.binding[sBinding].path) {
-                            return false;
-                        }
                     }
                 }
             }
@@ -416,18 +455,6 @@ export default Selector(id => {
             },
             label: null
         };
-
-        var _oElementModelValues = {
-            "sap.m.GenericTile": {
-                "undefined": {
-                    "/config/navigation_semantic_action": "Navigation-Semantic Action",
-                    "/config/navigation_semantic_object": "Navigation-Semantic Object",
-                    "/config/navigation_semantic_parameters": "Navigation-Semantic Paramters",
-                    "/config/navigation_target_url": "Navigation-Semantic URL"
-                }
-            }
-        };
-
         //on purpose implemented as local methods
         //this is not readable, but is a easy approach to transform those methods to the UI5Selector Stack (one single method approach)
         var _getParentWithDom = function (oItem, iCounter) {
@@ -560,15 +587,75 @@ export default Selector(id => {
             }
             return sCurrentComponent;
         };
+        var fnGetBindingContextInformation = function (oItem, sModel) {
+            var oCtx = oItem.getBindingContext(sModel === "undefined" ? undefined : sModel);
+            if (!oCtx) {
+                return null;
+            }
+            return oCtx.getPath();
+        };
+
+        var fnGetBindingInformation = function (oItem, sBinding) {
+            var oBindingInfo = oItem.getBindingInfo(sBinding);
+            var oBinding = oItem.getBinding(sBinding);
+            var oReturn = {};
+            if (!oBindingInfo) {
+                return oReturn;
+            }
+
+            //not really perfect for composite bindings (what we are doing here) - we are just returning the first for that..
+            //in case of a real use case --> enhance
+            var oRelevantPart = oBindingInfo;
+
+            if (oBindingInfo.parts && oBindingInfo.parts.length > 0) {
+                oRelevantPart = oBindingInfo.parts[0];
+            }
+
+            //get the binding context we are relevant for..
+            var oBndgContext = oItem.getBindingContext(oRelevantPart.model);
+            var sPathPre = oBndgContext ? oBndgContext.getPath() + "/" : "";
+
+            if (oBinding) {
+                oReturn = {
+                    model: oRelevantPart.model,
+                    path: oBinding.sPath && oBinding.getPath()
+                };
+
+                oReturn.path = sPathPre + oReturn.path;
+            } else {
+                oReturn = {
+                    path: oBindingInfo.path,
+                    model: oRelevantPart.model
+                };
+            }
+            return oReturn;
+        };
+
+        var fnGetContextModels = function (oItem) {
+            var oReturn = {};
+
+            if (!oItem) {
+                return oReturn;
+            }
+
+            var oModel = {};
+            oModel = $.extend(true, oModel, oItem.oModels);
+            oModel = $.extend(true, oModel, oItem.oPropagatedProperties.oModels);
+            return oModel;
+        };
+
         var fnGetElementInformation = function (oItem, oDomNode, bFull) {
             var oReturn = {
                 property: {},
                 aggregation: [],
                 association: {},
                 binding: {},
+                bindingContext: {},
                 context: {},
                 model: {},
                 metadata: {},
+                viewProperty: {},
+                classArray: [],
                 identifier: { domId: "", ui5Id: "", idCloned: false, idGenerated: false, ui5LocalId: "", localIdClonedOrGenerated: false, ui5AbsoluteId: "" },
                 control: null,
                 dom: null
@@ -581,7 +668,7 @@ export default Selector(id => {
             if (oTestGlobalBuffer["fnGetElement"][bFull][oItem.getId()]) {
                 return oTestGlobalBuffer["fnGetElement"][bFull][oItem.getId()];
             }
-            if (!oDomNode) {
+            if (!oDomNode && oItem.getDomRef) {
                 oDomNode = oItem.getDomRef();
             }
 
@@ -590,6 +677,15 @@ export default Selector(id => {
             oReturn.identifier.ui5Id = _getUi5Id(oItem);
             oReturn.identifier.ui5LocalId = _getUi5LocalId(oItem);
 
+
+            oReturn.classArray = [];
+            var oMeta = oItem.getMetadata();
+            while (oMeta) {
+                oReturn.classArray.push({
+                    elementName: oMeta._sClassName
+                });
+                oMeta = oMeta.getParent();
+            }
 
             //does the ui5Id contain a "-" with a following number? it is most likely a dependn control (e.g. based from aggregation or similar)
             if (RegExp("([A-Z,a-z,0-9])-([0-9])").test(oReturn.identifier.ui5Id) === true) {
@@ -623,46 +719,58 @@ export default Selector(id => {
             //get metadata..
             oReturn.metadata = {
                 elementName: oItem.getMetadata().getElementName(),
-                componentName: _getOwnerComponent(oItem)
+                componentName: _getOwnerComponent(oItem),
+                componentId: "",
+                componentTitle: "",
+                componentDescription: "",
+                componentDataSource: {}
             };
+            //enhance component information..
+            var oComponent = sap.ui.getCore().getComponent(oReturn.metadata.componentName);
+            if (oComponent) {
+                var oManifest = oComponent.getManifest();
+                if (oManifest && oManifest["sap.app"]) {
+                    var oApp = oManifest["sap.app"];
+                    oReturn.metadata.componentId = oApp.id;
+                    oReturn.metadata.componentTitle = oApp.title;
+                    oReturn.metadata.componentDescription = oApp.description;
+                    if (oApp.dataSources) {
+                        for (var sDs in oApp.dataSources) {
+                            var oDS = oApp.dataSources[sDs];
+                            if (oDS.type !== "OData") {
+                                continue;
+                            }
+                            oReturn.metadata.componentDataSource[sDs] = {
+                                uri: oDS.uri,
+                                localUri: (oDS.settings && oDS.settings.localUri) ? oDS.settings.localUri : ""
+                            };
+                        }
+                    }
+                }
+            }
 
             if (bFull === false) {
                 oTestGlobalBuffer["fnGetElement"][bFull][oItem.getId()] = oReturn;
                 return oReturn;
             }
 
-            //bindings..
-            for (var sBinding in oItem.mBindingInfos) {
-                var oBinding = oItem.getBinding(sBinding);
-                if (oBinding) {
-                    oReturn.binding[sBinding] = {
-                        path: oBinding.sPath && oBinding.getPath(),
-                        "static": oBinding.oModel && oBinding.getModel() instanceof sap.ui.model.resource.ResourceModel
-                    };
-                } else {
-                    var oBindingInfo = oItem.getBindingInfo(sBinding);
-                    if (!oBindingInfo) {
-                        continue;
-                    }
-                    if (oBindingInfo.path) {
-                        oReturn.binding[sBinding] = {
-                            path: oBindingInfo.path,
-                            "static": true
-                        };
-                    } else if (oBindingInfo.parts && oBindingInfo.parts.length > 0) {
-                        for (var i = 0; i < oBindingInfo.parts.length; i++) {
-                            if (!oBindingInfo.parts[i].path) {
-                                continue;
-                            }
-                            if (!oReturn.binding[sBinding]) {
-                                oReturn.binding[sBinding] = { path: oBindingInfo.parts[i].path, "static": true };
-                            } else {
-                                oReturn.binding[sBinding].path += ";" + oBindingInfo.parts[i].path;
-                            }
-                        }
+            //view..
+            var oView = _getParentWithDom(oItem, 1, true);
+            if (oView) {
+                if (oView.getProperty("viewName")) {
+                    oReturn.viewProperty.viewName = oView.getProperty("viewName");
+                    oReturn.viewProperty.localViewName = oReturn.viewProperty.viewName.split(".").pop();
+                    if (oReturn.viewProperty.localViewName.length) {
+                        oReturn.viewProperty.localViewName = oReturn.viewProperty.localViewName.charAt(0).toUpperCase() + oReturn.viewProperty.localViewName.substring(1);
                     }
                 }
             }
+
+            //bindings..
+            for (var sBinding in oItem.mBindingInfos) {
+                oReturn.binding[sBinding] = fnGetBindingInformation(oItem, sBinding);
+            }
+
 
             //very special for "sap.m.Label"..
             if (oReturn.metadata.elementName === "sap.m.Label" && !oReturn.binding.text) {
@@ -677,6 +785,15 @@ export default Selector(id => {
                 }
             }
 
+            //binding context
+            var aModels = fnGetContextModels(oItem);
+            for (var sModel in aModels) {
+                var oBndg = fnGetBindingContextInformation(oItem, sModel);
+                if (!oBndg) {
+                    continue;
+                }
+                oReturn.bindingContext[sModel] = oBndg;
+            }
 
             //return all simple properties
             for (var sProperty in oItem.mProperties) {
@@ -689,27 +806,6 @@ export default Selector(id => {
             //get model information..
             var oMetadata = oItem.getMetadata();
             oReturn.model = {};
-            while (oMetadata) {
-                if (!oMetadata._sClassName) {
-                    break;
-                }
-                var oType = _oElementModelValues[oMetadata._sClassName];
-                if (oType) {
-                    for (var sModel in oType) {
-                        sModel = sModel === "undefined" ? undefined : sModel;
-                        oReturn.model[sModel] = {};
-                        var oCurrentModel = oItem.getModel(sModel);
-                        if (!oCurrentModel) {
-                            continue;
-                        }
-                        for (var sProperty in oType[sModel]) {
-                            oReturn.model[sModel][sProperty] = oCurrentModel.getProperty(sProperty);
-                        }
-                    }
-                }
-
-                oMetadata = oMetadata.getParent();
-            }
 
             //return length of all aggregations
             var aMetadata = oItem.getMetadata().getAllAggregations();
@@ -734,8 +830,7 @@ export default Selector(id => {
                     oAggregationInfo.rows.push({
                         context: fnGetContexts(aAggregation[i]),
                         ui5Id: _getUi5Id(aAggregation[i]),
-                        ui5AbsoluteId: aAggregation[i].getId(),
-                        control: aAggregation[i]
+                        ui5AbsoluteId: aAggregation[i].getId()
                     });
                 }
                 oReturn.aggregation[oAggregationInfo.name] = oAggregationInfo;
@@ -744,190 +839,6 @@ export default Selector(id => {
             oTestGlobalBuffer["fnGetElement"][bFull][oItem.getId()] = oReturn;
             return oReturn;
         };
-        var fnGetElementInformation = function (oItem, oDomNode, bFull) {
-            var oReturn = {
-                property: {},
-                aggregation: [],
-                association: {},
-                binding: {},
-                context: {},
-                model: {},
-                metadata: {},
-                identifier: { domId: "", ui5Id: "", idCloned: false, idGenerated: false, ui5LocalId: "", localIdClonedOrGenerated: false, ui5AbsoluteId: "" },
-                control: null,
-                dom: null
-            };
-            bFull = typeof bFull === "undefined" ? true : bFull;
-
-            if (!oItem) {
-                return oReturn;
-            }
-            if (oTestGlobalBuffer["fnGetElement"][bFull][oItem.getId()]) {
-                return oTestGlobalBuffer["fnGetElement"][bFull][oItem.getId()];
-            }
-            if (!oDomNode) {
-                oDomNode = oItem.getDomRef();
-            }
-
-            oReturn.control = oItem;
-            oReturn.dom = oDomNode;
-            oReturn.identifier.ui5Id = _getUi5Id(oItem);
-            oReturn.identifier.ui5LocalId = _getUi5LocalId(oItem);
-
-
-            //does the ui5Id contain a "-" with a following number? it is most likely a dependn control (e.g. based from aggregation or similar)
-            if (RegExp("([A-Z,a-z,0-9])-([0-9])").test(oReturn.identifier.ui5Id) === true) {
-                oReturn.identifier.idCloned = true;
-            } else {
-                //check as per metadata..
-                var oMetadata = oItem.getMetadata();
-                while (oMetadata) {
-                    if (!oMetadata._sClassName) {
-                        break;
-                    }
-                    if (["sap.ui.core.Item", "sap.ui.table.Row", "sap.m.ObjectListItem"].indexOf(oMetadata._sClassName) !== -1) {
-                        oReturn.identifier.idCloned = true;
-                    }
-                    oMetadata = oMetadata.getParent();
-                }
-            }
-            //does the ui5id contain a "__"? it is most likely a generated id which should NOT BE USESD!!
-            //check might be enhanced, as it seems to be that all controls are adding "__[CONTORLNAME] as dynamic view..
-            if (oReturn.identifier.ui5Id.indexOf("__") !== -1) {
-                oReturn.identifier.idGenerated = true;
-            }
-            if (oDomNode) {
-                oReturn.identifier.domId = oDomNode.id;
-            }
-            if (oReturn.identifier.idCloned === true || oReturn.identifier.ui5LocalId.indexOf("__") !== -1) {
-                oReturn.identifier.localIdClonedOrGenerated = true;
-            }
-            oReturn.identifier.ui5AbsoluteId = oItem.getId();
-
-            //get metadata..
-            oReturn.metadata = {
-                elementName: oItem.getMetadata().getElementName(),
-                componentName: _getOwnerComponent(oItem)
-            };
-
-            if (bFull === false) {
-                oTestGlobalBuffer["fnGetElement"][bFull][oItem.getId()] = oReturn;
-                return oReturn;
-            }
-
-            //bindings..
-            for (var sBinding in oItem.mBindingInfos) {
-                var oBinding = oItem.getBinding(sBinding);
-                if (oBinding) {
-                    oReturn.binding[sBinding] = {
-                        path: oBinding.sPath && oBinding.getPath(),
-                        "static": oBinding.oModel && oBinding.getModel() instanceof sap.ui.model.resource.ResourceModel
-                    };
-                } else {
-                    var oBindingInfo = oItem.getBindingInfo(sBinding);
-                    if (!oBindingInfo) {
-                        continue;
-                    }
-                    if (oBindingInfo.path) {
-                        oReturn.binding[sBinding] = {
-                            path: oBindingInfo.path,
-                            "static": true
-                        };
-                    } else if (oBindingInfo.parts && oBindingInfo.parts.length > 0) {
-                        for (var i = 0; i < oBindingInfo.parts.length; i++) {
-                            if (!oBindingInfo.parts[i].path) {
-                                continue;
-                            }
-                            if (!oReturn.binding[sBinding]) {
-                                oReturn.binding[sBinding] = { path: oBindingInfo.parts[i].path, "static": true };
-                            } else {
-                                oReturn.binding[sBinding].path += ";" + oBindingInfo.parts[i].path;
-                            }
-                        }
-                    }
-                }
-            }
-
-            //very special for "sap.m.Label"..
-            if (oReturn.metadata.elementName === "sap.m.Label" && !oReturn.binding.text) {
-                if (oItem.getParent() && oItem.getParent().getMetadata()._sClassName === "sap.ui.layout.form.FormElement") {
-                    var oParentBndg = oItem.getParent().getBinding("label");
-                    if (oParentBndg) {
-                        oReturn.binding["text"] = {
-                            path: oParentBndg.sPath && oParentBndg.getPath(),
-                            "static": oParentBndg.oModel && oParentBndg.getModel() instanceof sap.ui.model.resource.ResourceModel
-                        };
-                    }
-                }
-            }
-
-
-            //return all simple properties
-            for (var sProperty in oItem.mProperties) {
-                oReturn.property[sProperty] = oItem["get" + sProperty.charAt(0).toUpperCase() + sProperty.substr(1)]();
-            }
-
-            //return all binding contexts
-            oReturn.context = fnGetContexts(oItem);
-
-            //get model information..
-            var oMetadata = oItem.getMetadata();
-            oReturn.model = {};
-            while (oMetadata) {
-                if (!oMetadata._sClassName) {
-                    break;
-                }
-                var oType = _oElementModelValues[oMetadata._sClassName];
-                if (oType) {
-                    for (var sModel in oType) {
-                        oReturn.model[sModel] = {};
-                        var oCurrentModel = oItem.getModel(sModel);
-                        if (!oCurrentModel) {
-                            continue;
-                        }
-                        for (var sProperty in oType[sModel]) {
-                            oReturn.model[sModel][sProperty] = oCurrentModel.getProperty(sProperty);
-                        }
-                    }
-                }
-
-                oMetadata = oMetadata.getParent();
-            }
-
-            //return length of all aggregations
-            var aMetadata = oItem.getMetadata().getAllAggregations();
-            for (var sAggregation in aMetadata) {
-                if (aMetadata[sAggregation].multiple === false) {
-                    continue;
-                }
-                var aAggregation = oItem["get" + sAggregation.charAt(0).toUpperCase() + sAggregation.substr(1)]();
-                var oAggregationInfo = {
-                    rows: [],
-                    filled: false,
-                    name: sAggregation,
-                    length: 0
-                };
-                if (typeof aAggregation !== "undefined" && aAggregation !== null) {
-                    oAggregationInfo.filled = true;
-                    oAggregationInfo.length = aAggregation.length;
-                }
-
-                //for every single line, get the binding context, and the row id, which can later on be analyzed again..
-                for (var i = 0; i < aAggregation.length; i++) {
-                    oAggregationInfo.rows.push({
-                        context: fnGetContexts(aAggregation[i]),
-                        ui5Id: _getUi5Id(aAggregation[i]),
-                        ui5AbsoluteId: aAggregation[i].getId(),
-                        control: aAggregation[i]
-                    });
-                }
-                oReturn.aggregation[oAggregationInfo.name] = oAggregationInfo;
-            }
-
-            oTestGlobalBuffer["fnGetElement"][bFull][oItem.getId()] = oReturn;
-            return oReturn;
-        };
-
 
         //missing: get elements with same parent, to get elements "right next", "left" and on same level
         var fnGetContexts = function (oItem) {
