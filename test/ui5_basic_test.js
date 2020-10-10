@@ -5,9 +5,4 @@ fixture('Icon Explorer')
 
 test('Browse Orders', async t => {
     await t.maximizeWindow();
-
-    await t.click(UI5Selector({
-        metadata: { elementName: "sap.ui.layout.VerticalLayout" }, parentL2: { identifier: { ui5Id: "overview--results" } },
-        bindingContext: { undefined: "/SAP-icons/groups/0/icons/505" }
-    }));
 });
