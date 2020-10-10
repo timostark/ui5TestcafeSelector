@@ -1,16 +1,13 @@
 import { UI5Selector } from "../lib/index";
 
-fixture('Browse Orders')
-    .page('https://openui5.hana.ondemand.com/test-resources/sap/m/demokit/orderbrowser/webapp/test/mockServer.html#');
+fixture('Icon Explorer')
+    .page('https://sapui5.hana.ondemand.com/test-resources/sap/m/demokit/iconExplorer/webapp/index.html#/overview/SAP-icons/?tab=grid&search=show&icon=show');
 
 test('Browse Orders', async t => {
     await t.maximizeWindow();
-    
-    await t.click(UI5Selector({ metadata: { elementName: "sap.m.ObjectListItem" }, parent: { identifier: { ui5Id: "master--list" } }, binding: { number: { path: "/Orders(7991)/OrderDate" } } }));
 
-    //new route:#/Orders/7991/?tab=shipping
-    await t.click(UI5Selector("detail--closeColumn-button"));
-
-    //new route:
-    await t.click(UI5Selector({ metadata: { elementName: "sap.m.ObjectListItem" }, parent: { identifier: { ui5Id: "master--list" } }, bindingContext: { undefined: "/Orders(7918)" } }));
+    await t.click(UI5Selector({
+        metadata: { elementName: "sap.ui.layout.VerticalLayout" }, parentL2: { identifier: { ui5Id: "overview--results" } },
+        bindingContext: { undefined: "/SAP-icons/groups/0/icons/505" }
+    }));
 });

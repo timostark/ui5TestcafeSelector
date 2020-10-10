@@ -42,6 +42,10 @@ declare global {
         [binding: string]: UI5BindingDefProperty
     };
 
+    interface UI5BindingContextDefMetadata {
+        [binding: string]: string
+    };
+
     interface UI5SelectorDefMetadata {
         elementName?: string,
         componentName?: string
@@ -83,6 +87,8 @@ declare global {
         context?: any,
 
         binding?: UI5BindingDefMetadata,
+
+        bindingContext?: UI5BindingContextDefMetadata,
 
         itemdata?: any,
 

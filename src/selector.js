@@ -119,8 +119,15 @@ export default Selector(id => {
         };
         sap.ui.getCore().registerPlugin(fakePlugin);
         sap.ui.getCore().unregisterPlugin(fakePlugin);
-        for (var sCoreObject in oCoreObject.mElements) {
-            var oObject = oCoreObject.mElements[sCoreObject];
+        var aElements = {};
+        if (sap.ui.core.Element && sap.ui.core.Element.registry) {
+            aElements = sap.ui.core.Element.registry.all();
+        } else {
+            aElements = oCoreObject.mElements;
+        }
+
+        for (var sCoreObject in aElements) {
+            var oObject = aElements[sCoreObject];
             if (oObject.getMetadata()._sClassName === "sap.m.Label") {
                 var oLabelFor = oObject.getLabelFor ? oObject.getLabelFor() : null;
                 if (oLabelFor) {
@@ -342,7 +349,12 @@ export default Selector(id => {
         };
         sap.ui.getCore().registerPlugin(fakePlugin);
         sap.ui.getCore().unregisterPlugin(fakePlugin);
-        var aElements = oCoreObject.mElements;
+        var aElements = {};
+        if (sap.ui.core.Element && sap.ui.core.Element.registry) {
+            aElements = sap.ui.core.Element.registry.all();
+        } else {
+            aElements = oCoreObject.mElements;
+        }
 
         //search for identifier of every single object..
         var bFound = false;
@@ -520,8 +532,16 @@ export default Selector(id => {
             };
             sap.ui.getCore().registerPlugin(fakePlugin);
             sap.ui.getCore().unregisterPlugin(fakePlugin);
-            for (var sCoreObject in oCoreObject.mElements) {
-                var oObject = oCoreObject.mElements[sCoreObject];
+
+            var aElements = {};
+            if (sap.ui.core.Element && sap.ui.core.Element.registry) {
+                aElements = sap.ui.core.Element.registry.all();
+            } else {
+                aElements = oCoreObject.mElements;
+            }
+
+            for (var sCoreObject in aElements) {
+                var oObject = aElements[sCoreObject];
                 if (oObject.getMetadata()._sClassName === "sap.m.Label") {
                     var oLabelFor = oObject.getLabelFor ? oObject.getLabelFor() : null;
                     if (oLabelFor) {
