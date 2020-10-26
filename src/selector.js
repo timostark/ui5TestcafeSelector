@@ -71,6 +71,9 @@ export default Selector(id => {
         }
         return null;
     };
+    var _getLumiraId = function (oItem) {
+        return oItem.zenPureId;
+    };
     var _getUi5LocalId = function (oItem) {
         var sId = oItem.getId();
         if (sId.lastIndexOf("-") !== -1) {
@@ -247,6 +250,9 @@ export default Selector(id => {
             if (id.identifier.ui5LocalId && id.identifier.ui5LocalId !== _getUi5LocalId(oItem)) {
                 return false;
             }
+            if (id.identifier.lumiraId && id.identifier.lumiraId !== _getLumiraId(oItem)) {
+                return false;
+            }
         }
 
         if (id.bindingContext) {
@@ -374,7 +380,7 @@ export default Selector(id => {
         }
     }
 
-    if (typeof id !== "string") {
+    var fnFindByComplexParameter = function (id) {
         if (JSON.stringify(id) == JSON.stringify({})) {
             return [];
         }
@@ -448,7 +454,10 @@ export default Selector(id => {
         } else {
             aItem = [];
         }
-    } else {
+        return aItem;
+    };
+
+    if (typeof id === "string") {
         //our search for an ID is using "ends with", as we are using local IDs only (ignore component)
         //this is not really perfect for multi-component architecture (here the user has to add the component manually)
         //but sufficient for most approaches. Reason for removign component:
@@ -458,16 +467,42 @@ export default Selector(id => {
         }
         var searchId = "*[id$='" + id + "']";
         aItem = $(searchId);
+
+        //fallbacks to make the API simpler - search for ui5-id as if the user would search for ids
+        if (!aItem || !aItem.length || !aItem.control() || !aItem.control().length) {
+            //try to get via complex search parameters, i.E. via localId, via lumiraId and via 
+            aItem = fnFindByComplexParameter({
+                identifier: {
+                    ui5AbsoluteId: id
+                }
+            });
+            if (!aItem || !aItem.length || !aItem.control() || !aItem.control().length) {
+                aItem = fnFindByComplexParameter({
+                    identifier: {
+                        ui5LocalId: id
+                    }
+                });
+                if (!aItem || !aItem.length || !aItem.control() || !aItem.control().length) {
+                    aItem = fnFindByComplexParameter({
+                        identifier: {
+                            lumiraId: id
+                        }
+                    });
+                }
+            }
+        }
+    } else {
+        aItem = fnFindByComplexParameter(id);
     }
+
     if (!aItem || !aItem.length || !aItem.control() || !aItem.control().length) {
         return [];
     } //no ui5 contol in case
 
     //try to make a "smart guess" (in case selector does not explicitly define it)
     var oField = aItem.get(0);
-    if (oField instanceof sap.m.InputBase) {
+    if (oField instanceof sap.m.InputBase && typeof id.domChildWith === "undefined") {
         //get the "inner" field for input - we are always working with inner..
-        debugger;
         var sIdUsed = oField.id;
         if (sIdUsed && !sIdUsed.endsWith("-inner")) {
             var oElement = document.getElementById(sIdUsed + "-inner");
@@ -727,7 +762,8 @@ export default Selector(id => {
                     idGenerated: false,
                     ui5LocalId: "",
                     localIdClonedOrGenerated: false,
-                    ui5AbsoluteId: ""
+                    ui5AbsoluteId: "",
+                    lumiraId: ""
                 },
                 control: null,
                 dom: null
@@ -788,6 +824,10 @@ export default Selector(id => {
             }
             oReturn.identifier.ui5AbsoluteId = oItem.getId();
 
+            if (oItem.zenPureId) {
+                oReturn.identifier.lumiraId = oItem.zenPureId;
+            }
+
             //get metadata..
             oReturn.metadata = {
                 elementName: oItem.getMetadata().getElementName(),
@@ -795,8 +835,14 @@ export default Selector(id => {
                 componentId: "",
                 componentTitle: "",
                 componentDescription: "",
-                componentDataSource: {}
+                componentDataSource: {},
+                lumiraType: ""
             };
+
+            if (oItem.zenType) {
+                oReturn.metadata.lumiraType = oItem.zenType;
+            }
+
             //enhance component information..
             var oComponent = sap.ui.getCore().getComponent(oReturn.metadata.componentName);
             if (oComponent) {
@@ -869,7 +915,15 @@ export default Selector(id => {
 
             //return all simple properties
             for (var sProperty in oItem.mProperties) {
-                oReturn.property[sProperty] = oItem["get" + sProperty.charAt(0).toUpperCase() + sProperty.substr(1)]();
+                if (typeof oItem.mProperties[sProperty] === "function" || typeof oItem.mProperties[sProperty] === "object") {
+                    continue;
+                }
+                var fnGetter = oItem["get" + sProperty.charAt(0).toUpperCase() + sProperty.substr(1)];
+                if (fnGetter) {
+                    oReturn.property[sProperty] = fnGetter.call(oItem);
+                } else {
+                    oReturn.property[sProperty] = oItem.mProperties[sProperty];
+                }
             }
 
             //return all binding contexts
@@ -904,6 +958,11 @@ export default Selector(id => {
                         ui5Id: _getUi5Id(aAggregation[i]),
                         ui5AbsoluteId: aAggregation[i].getId()
                     });
+
+                    //performance and navigation: in case we have more than 50 aggregation we just don't need them in any realistic scenario..
+                    if (i > 50) {
+                        break;
+                    }
                 }
                 oReturn.aggregation[oAggregationInfo.name] = oAggregationInfo;
             }
