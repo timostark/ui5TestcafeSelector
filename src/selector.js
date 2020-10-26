@@ -1,4 +1,6 @@
-import { Selector } from 'testcafe';
+import {
+    Selector
+} from 'testcafe';
 
 export default Selector(id => {
     /****************************************/
@@ -92,17 +94,23 @@ export default Selector(id => {
             }
         }
 
-        //(2) no custom data? search for special cases
-        //2.1: Multi-Combo-Box
-        var oPrt = _getParentWithDom(oItem, 3);
-        if (oPrt && oPrt.getMetadata().getElementName() === "sap.m.MultiComboBox") {
-            if (oPrt._getItemByListItem) {
-                var oCtrl = oPrt._getItemByListItem(oItem);
-                if (oCtrl) {
-                    return oCtrl;
+        //(2) no custom data? search for combobox & multi-combo-box case..
+        var iIndex = 1;
+        var oPrt = oItem;
+        while (iIndex < 100) {
+            oPrt = _getParentWithDom(oItem, iIndex);
+            if (!oPrt) {
+                return null;
+            }
+            iIndex += 1;
+            var sElementName = oPrt.getMetadata().getElementName();
+            if (oPrt && (sElementName === "sap.m.MultiComboBox" || sElementName === "sap.m.ComboBox")) {
+                if (oPrt._getItemByListItem) {
+                    return oPrt._getItemByListItem(oItem);
                 }
             }
         }
+        return null;
     };
 
     var _getAllLabels = function () {
@@ -335,26 +343,42 @@ export default Selector(id => {
         return [];
     }
 
+
+    var oCoreObject = null;
+    var fakePlugin = {
+        startPlugin: function (core) {
+            oCoreObject = core;
+            return core;
+        }
+    };
+    sap.ui.getCore().registerPlugin(fakePlugin);
+    sap.ui.getCore().unregisterPlugin(fakePlugin);
+    var aElements = {};
+    if (sap.ui.core.Element && sap.ui.core.Element.registry) {
+        aElements = sap.ui.core.Element.registry.all();
+    } else {
+        aElements = oCoreObject.mElements;
+    }
+
+    //First Step: Early exits, in case anything suspicious is happening..
+    //1.1: early exit in case of transitions..
+    for (var sElement in aElements) {
+        var oItem = aElements[sElement];
+        if (oItem instanceof sap.m.NavContainer) {
+            if (oItem.bTransition2EndPending === true ||
+                oItem.bTransitionEndPending === true ||
+                oItem._bNavigating === true ||
+                (oItem._aQueue && oItem._aQueue.length > 0)) {
+                return [];
+            }
+        }
+    }
+
     if (typeof id !== "string") {
         if (JSON.stringify(id) == JSON.stringify({})) {
             return [];
         }
 
-        var oCoreObject = null;
-        var fakePlugin = {
-            startPlugin: function (core) {
-                oCoreObject = core;
-                return core;
-            }
-        };
-        sap.ui.getCore().registerPlugin(fakePlugin);
-        sap.ui.getCore().unregisterPlugin(fakePlugin);
-        var aElements = {};
-        if (sap.ui.core.Element && sap.ui.core.Element.registry) {
-            aElements = sap.ui.core.Element.registry.all();
-        } else {
-            aElements = oCoreObject.mElements;
-        }
 
         //search for identifier of every single object..
         var bFound = false;
@@ -439,6 +463,20 @@ export default Selector(id => {
         return [];
     } //no ui5 contol in case
 
+    //try to make a "smart guess" (in case selector does not explicitly define it)
+    var oField = aItem.get(0);
+    if (oField instanceof sap.m.InputBase) {
+        //get the "inner" field for input - we are always working with inner..
+        debugger;
+        var sIdUsed = oField.id;
+        if (sIdUsed && !sIdUsed.endsWith("-inner")) {
+            var oElement = document.getElementById(sIdUsed + "-inner");
+            if (oElement) {
+                aItem = [oElement];
+            }
+        }
+    }
+
     //---postprocessing - return only my item
     return [aItem.get(0)];
 }).addCustomMethods({
@@ -505,17 +543,23 @@ export default Selector(id => {
                 }
             }
 
-            //(2) no custom data? search for special cases
-            //2.1: Multi-Combo-Box
-            var oPrt = _getParentWithDom(oItem, 3);
-            if (oPrt && oPrt.getMetadata().getElementName() === "sap.m.MultiComboBox") {
-                if (oPrt._getItemByListItem) {
-                    var oCtrl = oPrt._getItemByListItem(oItem);
-                    if (oCtrl) {
-                        return oCtrl;
+            //(2) no custom data? search for combobox & multi-combo-box case..
+            var iIndex = 1;
+            var oPrt = oItem;
+            while (iIndex < 100) {
+                oPrt = _getParentWithDom(oItem, iIndex);
+                if (!oPrt) {
+                    return null;
+                }
+                iIndex += 1;
+                var sElementName = oPrt.getMetadata().getElementName();
+                if (oPrt && (sElementName === "sap.m.MultiComboBox" || sElementName === "sap.m.ComboBox")) {
+                    if (oPrt._getItemByListItem) {
+                        return oPrt._getItemByListItem(oItem);
                     }
                 }
             }
+            return null;
         };
 
         var _getAllLabels = function () {
@@ -676,7 +720,15 @@ export default Selector(id => {
                 metadata: {},
                 viewProperty: {},
                 classArray: [],
-                identifier: { domId: "", ui5Id: "", idCloned: false, idGenerated: false, ui5LocalId: "", localIdClonedOrGenerated: false, ui5AbsoluteId: "" },
+                identifier: {
+                    domId: "",
+                    ui5Id: "",
+                    idCloned: false,
+                    idGenerated: false,
+                    ui5LocalId: "",
+                    localIdClonedOrGenerated: false,
+                    ui5AbsoluteId: ""
+                },
                 control: null,
                 dom: null
             };
@@ -890,7 +942,14 @@ export default Selector(id => {
             association: {},
             context: {},
             metadata: {},
-            identifier: { domId: "", ui5Id: "", idCloned: false, idGenerated: false, ui5LocalId: "", ui5AbsoluteId: "" },
+            identifier: {
+                domId: "",
+                ui5Id: "",
+                idCloned: false,
+                idGenerated: false,
+                ui5LocalId: "",
+                ui5AbsoluteId: ""
+            },
             parent: {},
             parentL2: {},
             parentL3: {},
@@ -925,9 +984,13 @@ export default Selector(id => {
 
         const element = oReturn;
         if (typeof fn === 'function') {
-            return fn({ element });
+            return fn({
+                element
+            });
         }
 
-        return { element };
+        return {
+            element
+        };
     }
 });

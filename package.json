@@ -1,6 +1,6 @@
 {
   "name": "ui5-testcafe-selector",
-  "version": "0.1.9",
+  "version": "0.2.7",
   "description": "Testcafe Selector for UI5",
   "repository": "https://github.com/timostark/ui5TestcafeSelector",
   "main": "lib/index",
@@ -14,8 +14,7 @@
     "testcafe": "testcafe chrome test/ui5_basic_test.js --app \"npm run http-server\"",
     "test": "npm run lint && npm run build && npm run testcafe",
     "build": "babel src --out-dir lib",
-    "publish-please": "publish-please",
-    "prepublish": "publish-please guard"
+    "publish-please": "publish-please"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",

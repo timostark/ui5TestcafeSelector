@@ -141,6 +141,7 @@ declare global {
     };
 
     interface Utils {
+        boLogin(t: TestController, userName: string, password: string) : void;
         launchpadLogin(t: TestController, userName: string, password: string) : void;
         supportAssistant(t: TestController, componentNamem?: string): SupportAssistantResult;
     };

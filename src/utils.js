@@ -1,7 +1,17 @@
-import { Selector, ClientFunction } from 'testcafe';
+import {
+    Selector,
+    ClientFunction
+} from 'testcafe';
 
 class Utils {
-    constructor() {
+    constructor() {}
+
+    async boLogin(t, userName, password) {
+        await t
+            .maximizeWindow()
+            .typeText(Selector('#_id0\\3Alogon\\3AUSERNAME'), userName)
+            .typeText(Selector('#_id0\\3Alogon\\3APASSWORD'), password)
+            .click(Selector('#_id0\\3Alogon\\3AlogonButton'));
     }
 
     async launchpadLogin(t, userName, password) {
@@ -14,14 +24,36 @@ class Utils {
 
     async supportAssistant(t) {
         await t.click(Selector(".sapUiBody")); //only reason: wait for xhr requests to be finished..
-        const oClientFunction = this._supportAssistant().with({ boundTestRun: t });
+        const oClientFunction = this._supportAssistant().with({
+            boundTestRun: t
+        });
         return await oClientFunction();
+    }
+
+    async deactivateAnimations(t) {
+        await t.click(Selector(".sapUiBody")); //only reason: wait for xhr requests to be finished..
+        const oClientFunction = this._deactivateAnimation().with({
+            boundTestRun: t
+        });
+        return await oClientFunction();
+    }
+
+    _deactivateAnimation() {
+        return ClientFunction(() => {
+            return new Promise(function (resolve) {
+                sap.ui.getCore().getConfiguration().setAnimationMode(sap.ui.core.Configuration.AnimationMode.none);
+            });
+        });
     }
 
     _supportAssistant(sComponent) {
         return ClientFunction(() => {
             return new Promise(function (resolve) {
-                var oReturn = { "High": [], "Medium": [], "Low": [] };
+                var oReturn = {
+                    "High": [],
+                    "Medium": [],
+                    "Low": []
+                };
                 var oComponentCpy;
                 if (sComponent) {
                     oComponentCpy = {
@@ -62,7 +94,11 @@ class Utils {
 
                 });
             });
-        }, { dependencies: { sComponent } });
+        }, {
+            dependencies: {
+                sComponent
+            }
+        });
     }
 }
 
