@@ -3,13 +3,22 @@ import {
 } from 'testcafe';
 
 export default Selector(id => {
+    let _wnd = window;
+    let iFrames = document.getElementsByTagName("iframe");
+    for (let i = 0; i < iFrames.length; i++) {
+        if (iFrames[i].contentWindow && iFrames[i].contentWindow.sap) {
+            _wnd = iFrames[i].contentWindow;
+            break;
+        }
+    }
+
     /****************************************/
     //GLOBALS
     /****************************************/
 
     //on purpose implemented as local methods
     //this is not readable, but is a easy approach to transform those methods to the UI5Selector Stack (one single method approach)
-    var oTestGlobalBuffer = {
+    let oTestGlobalBuffer = {
         fnGetElement: {
             "true": {},
             "false": {}
@@ -22,25 +31,25 @@ export default Selector(id => {
         label: null
     };
 
-    var fnGetBindingInformation = function (oItem, sBinding) {
-        var oBindingInfo = oItem.getBindingInfo(sBinding);
-        var oBinding = oItem.getBinding(sBinding);
-        var oReturn = {};
+    let fnGetBindingInformation = function (oItem, sBinding) {
+        let oBindingInfo = oItem.getBindingInfo(sBinding);
+        let oBinding = oItem.getBinding(sBinding);
+        let oReturn = {};
         if (!oBindingInfo) {
             return oReturn;
         }
 
         //not really perfect for composite bindings (what we are doing here) - we are just returning the first for that..
         //in case of a real use case --> enhance
-        var oRelevantPart = oBindingInfo;
+        let oRelevantPart = oBindingInfo;
 
         if (oBindingInfo.parts && oBindingInfo.parts.length > 0) {
             oRelevantPart = oBindingInfo.parts[0];
         }
 
         //get the binding context we are relevant for..
-        var oBndgContext = oItem.getBindingContext(oRelevantPart.model);
-        var sPathPre = oBndgContext ? oBndgContext.getPath() + "/" : "";
+        let oBndgContext = oItem.getBindingContext(oRelevantPart.model);
+        let sPathPre = oBndgContext ? oBndgContext.getPath() + "/" : "";
 
         if (oBinding) {
             oReturn = {
@@ -58,12 +67,16 @@ export default Selector(id => {
         return oReturn;
     };
 
-    var _getParentWithDom = function (oItem, iCounter) {
+    let _getParentWithDom = function (oItem, iCounter, bViewOnly) {
         oItem = oItem.getParent();
         while (oItem && oItem.getParent) {
             if (oItem.getDomRef && oItem.getDomRef()) {
                 iCounter = iCounter - 1;
                 if (iCounter <= 0) {
+                    if (bViewOnly === true && !oItem.getViewData) {
+                        oItem = oItem.getParent();
+                        continue;
+                    }
                     return oItem;
                 }
             }
@@ -71,42 +84,42 @@ export default Selector(id => {
         }
         return null;
     };
-    var _getLumiraId = function (oItem) {
+    let _getLumiraId = function (oItem) {
         return oItem.zenPureId;
     };
-    var _getUi5LocalId = function (oItem) {
-        var sId = oItem.getId();
+    let _getUi5LocalId = function (oItem) {
+        let sId = oItem.getId();
         if (sId.lastIndexOf("-") !== -1) {
             return sId.substr(sId.lastIndexOf("-") + 1);
         }
         return sId;
     };
-    var _getItemForItem = function (oItem) {
+    let _getItemForItem = function (oItem) {
         //(0) check if we are already an item - no issue than..
-        if (oItem instanceof sap.ui.core.Item) {
+        if (oItem instanceof _wnd.sap.ui.core.Item) {
             return oItem;
         }
 
         //(1) check by custom data..
         if (oItem.getCustomData()) {
-            for (var i = 0; i < oItem.getCustomData().length; i++) {
-                var oObj = oItem.getCustomData()[i].getValue();
-                if (oObj instanceof sap.ui.core.Item) {
+            for (let i = 0; i < oItem.getCustomData().length; i++) {
+                let oObj = oItem.getCustomData()[i].getValue();
+                if (oObj instanceof _wnd.sap.ui.core.Item) {
                     return oObj;
                 }
             }
         }
 
         //(2) no custom data? search for combobox & multi-combo-box case..
-        var iIndex = 1;
-        var oPrt = oItem;
+        let iIndex = 1;
+        let oPrt = oItem;
         while (iIndex < 100) {
             oPrt = _getParentWithDom(oItem, iIndex);
             if (!oPrt) {
                 return null;
             }
             iIndex += 1;
-            var sElementName = oPrt.getMetadata().getElementName();
+            let sElementName = oPrt.getMetadata().getElementName();
             if (oPrt && (sElementName === "sap.m.MultiComboBox" || sElementName === "sap.m.ComboBox")) {
                 if (oPrt._getItemByListItem) {
                     return oPrt._getItemByListItem(oItem);
@@ -116,31 +129,31 @@ export default Selector(id => {
         return null;
     };
 
-    var _getAllLabels = function () {
+    let _getAllLabels = function () {
         if (oTestGlobalBuffer.label) {
             return oTestGlobalBuffer.label;
         }
         oTestGlobalBuffer.label = {};
-        var oCoreObject = null;
-        var fakePlugin = {
+        let oCoreObject = null;
+        let fakePlugin = {
             startPlugin: function (core) {
                 oCoreObject = core;
                 return core;
             }
         };
-        sap.ui.getCore().registerPlugin(fakePlugin);
-        sap.ui.getCore().unregisterPlugin(fakePlugin);
-        var aElements = {};
-        if (sap.ui.core.Element && sap.ui.core.Element.registry) {
-            aElements = sap.ui.core.Element.registry.all();
+        _wnd.sap.ui.getCore().registerPlugin(fakePlugin);
+        _wnd.sap.ui.getCore().unregisterPlugin(fakePlugin);
+        let aElements = {};
+        if (_wnd.sap.ui.core.Element && _wnd.sap.ui.core.Element.registry) {
+            aElements = _wnd.sap.ui.core.Element.registry.all();
         } else {
             aElements = oCoreObject.mElements;
         }
 
-        for (var sCoreObject in aElements) {
-            var oObject = aElements[sCoreObject];
+        for (let sCoreObject in aElements) {
+            let oObject = aElements[sCoreObject];
             if (oObject.getMetadata()._sClassName === "sap.m.Label") {
-                var oLabelFor = oObject.getLabelFor ? oObject.getLabelFor() : null;
+                let oLabelFor = oObject.getLabelFor ? oObject.getLabelFor() : null;
                 if (oLabelFor) {
                     oTestGlobalBuffer.label[oLabelFor] = oObject; //always overwrite - i am very sure that is correct
                 } else {
@@ -149,8 +162,8 @@ export default Selector(id => {
                     //we have to search UPWARDS, and hope we are within a form.. in that case, normally we can just take all the fields aggregation elements
                     if (oObject.getParent() && oObject.getParent().getMetadata()._sClassName === "sap.ui.layout.form.FormElement") {
                         //ok.. we got luck.. let's assign all fields..
-                        var oFormElementFields = oObject.getParent().getFields();
-                        for (var j = 0; j < oFormElementFields.length; j++) {
+                        let oFormElementFields = oObject.getParent().getFields();
+                        for (let j = 0; j < oFormElementFields.length; j++) {
                             if (!oTestGlobalBuffer.label[oFormElementFields[j].getId()]) {
                                 oTestGlobalBuffer.label[oFormElementFields[j].getId()] = oObject;
                             }
@@ -165,16 +178,16 @@ export default Selector(id => {
     };
 
 
-    var _getLabelForItem = function (oItem) {
-        var aItems = _getAllLabels();
+    let _getLabelForItem = function (oItem) {
+        let aItems = _getAllLabels();
         return (aItems && aItems[oItem.getId()]) ? aItems[oItem.getId()] : null;
     };
 
 
-    var _getUi5Id = function (oItem) {
+    let _getUi5Id = function (oItem) {
         //remove all component information from the control
-        var oParent = oItem;
-        var sCurrentComponent = "";
+        let oParent = oItem;
+        let sCurrentComponent = "";
         while (oParent && oParent.getParent) {
             if (oParent.getController && oParent.getController() && oParent.getController().getOwnerComponent && oParent.getController().getOwnerComponent()) {
                 sCurrentComponent = oParent.getController().getOwnerComponent().getId();
@@ -186,7 +199,7 @@ export default Selector(id => {
             return oItem.getId();
         }
 
-        var sId = oItem.getId();
+        let sId = oItem.getId();
         sCurrentComponent = sCurrentComponent + "---";
         if (sId.lastIndexOf(sCurrentComponent) !== -1) {
             return sId.substr(sId.lastIndexOf(sCurrentComponent) + sCurrentComponent.length);
@@ -194,8 +207,8 @@ export default Selector(id => {
         return sId;
     };
 
-    var _getOwnerComponent = function (oParent) {
-        var sCurrentComponent = "";
+    let _getOwnerComponent = function (oParent) {
+        let sCurrentComponent = "";
         while (oParent && oParent.getParent) {
             if (oParent.getController && oParent.getController() && oParent.getController().getOwnerComponent && oParent.getController().getOwnerComponent()) {
                 sCurrentComponent = oParent.getController().getOwnerComponent().getId();
@@ -206,8 +219,8 @@ export default Selector(id => {
         return sCurrentComponent;
     };
 
-    var _checkItem = function (oItem, id) {
-        var bFound = true;
+    let _checkItem = function (oItem, id) {
+        let bFound = true;
         if (!oItem) { //e.g. parent level is not existing at all..
             return false;
         }
@@ -220,22 +233,22 @@ export default Selector(id => {
             }
         }
         if (id.domChildWith && id.domChildWith.length > 0) {
-            var oDomRef = oItem.getDomRef();
+            let oDomRef = oItem.getDomRef();
             if (!oDomRef) {
                 return false;
             }
-            if ($("*[id$='" + oDomRef.id + id.domChildWith + "']").length === 0) {
+            if (_wnd.$("*[id$='" + oDomRef.id + id.domChildWith + "']").length === 0) {
                 return false;
             }
         }
 
         if (id.model) {
-            for (var sModel in id.model) {
+            for (let sModel in id.model) {
                 sModel = sModel === "undefined" ? undefined : sModel;
                 if (!oItem.getModel(sModel)) {
                     return false;
                 }
-                for (var sModelProp in id.model[sModel]) {
+                for (let sModelProp in id.model[sModel]) {
                     if (oItem.getModel(sModel).getProperty(sModelProp) !== id.model[sModel][sModelProp]) {
                         return false;
                     }
@@ -253,11 +266,32 @@ export default Selector(id => {
             if (id.identifier.lumiraId && id.identifier.lumiraId !== _getLumiraId(oItem)) {
                 return false;
             }
+            if (id.identifier.id) {
+                if (id.identifier.id !== _getUi5Id(oItem) || id.identifier.id !== _getUi5LocalId(oItem) || id.identifier.id !== _getLumiraId(oItem)) {
+                    return false;
+                }
+            }
+        }
+
+        if (typeof id.insideATable !== "undefined") {
+            var bIsInTable = false;
+            var oParent = oItem.getParent();
+            while (oParent) {
+                var sControl = oParent.getMetadata()._sClassName;
+                if (sControl === "sap.m.Table" || sControl === "sap.ui.table.Table" || sControl === "sap.ui.table.TreeTable" || sControl === "sap.zen.crosstab.Crosstab") {
+                    bIsInTable = true;
+                    break;
+                }
+                oParent = oParent.getParent();
+            }
+            if (bIsInTable !== id.insideATable) {
+                return false;
+            }
         }
 
         if (id.bindingContext) {
-            for (var sModel in id.bindingContext) {
-                var oCtx = oItem.getBindingContext(sModel === "undefined" ? undefined : sModel);
+            for (let sModel in id.bindingContext) {
+                let oCtx = oItem.getBindingContext(sModel === "undefined" ? undefined : sModel);
                 if (!oCtx) {
                     return false;
                 }
@@ -269,13 +303,13 @@ export default Selector(id => {
         }
 
         if (id.binding) {
-            for (var sBinding in id.binding) {
-                var oBndgInfo = fnGetBindingInformation(oItem, sBinding);
+            for (let sBinding in id.binding) {
+                let oBndgInfo = fnGetBindingInformation(oItem, sBinding);
 
                 if (oBndgInfo.path !== id.binding[sBinding].path) {
                     if (oItem.getMetadata().getElementName() === "sap.m.Label") {
                         if (oItem.getParent() && oItem.getParent().getMetadata()._sClassName === "sap.ui.layout.form.FormElement") {
-                            var oParentBndg = oItem.getParent().getBinding("label");
+                            let oParentBndg = oItem.getParent().getBinding("label");
                             if (!oParentBndg || oParentBndg.getPath() !== id.binding[sBinding].path) {
                                 return false;
                             }
@@ -289,9 +323,63 @@ export default Selector(id => {
             }
         }
 
+        if (id.lumiraProperty) {
+            if (typeof id.lumiraProperty.numberOfDimensionsOnRow !== "undefined" && id.lumiraProperty.numberOfDimensionsOnRow !== oItem.oHeaderInfo.getNumberOfDimensionsOnRowsAxis()) {
+                return false;
+            }
+            if (typeof id.lumiraProperty.numberOfDimensionsOnCol !== "undefined" && id.lumiraProperty.numberOfDimensionsOnCol !== oItem.oHeaderInfo.getNumberOfDimensionsOnColsAxis()) {
+                return false;
+            }
+            if (typeof id.lumiraProperty.numberOfRows !== "undefined" && id.lumiraProperty.numberOfRows !== oItem.rowHeaderArea.oDataModel.getRowCnt()) {
+                return false;
+            }
+            if (typeof id.lumiraProperty.numberOfCols !== "undefined" && id.lumiraProperty.numberOfCols !== oItem.columnHeaderArea.oDataModel.getColCnt()) {
+                return false;
+            }
+            if (typeof id.lumiraProperty.numberOfDataCells !== "undefined" && id.lumiraProperty.numberOfDataCells !== oItem.getAggregation("dataCells").length) {
+                return false;
+            }
+            if (typeof id.lumiraProperty.chartTitle !== "undefined" && id.lumiraProperty.chartTitle !== oItem.widget.getTitleTextInternal()) {
+                return false;
+            }
+            if (typeof id.lumiraProperty.chartType !== "undefined" && id.lumiraProperty.chartType !== oItem.widget.vizType()) {
+                return false;
+            }
+            if (typeof id.lumiraProperty.dimensionCount !== "undefined" || typeof id.lumiraProperty.measuresCount !== "undefined") {
+                let aFeedItems = JSON.parse(oItem.widget.feedItems());
+                let iDimCount = 0;
+                let iMeasCount = 0;
+                aFeedItems.filter(function (e) {
+                    return e.type == "Dimension";
+                }).forEach(function (e) {
+                    iDimCount += e.values.length;
+                });
+                aFeedItems.filter(function (e) {
+                    return e.type == "Measure";
+                }).forEach(function (e) {
+                    iMeasCount += e.values.length;
+                });
+                if (typeof id.lumiraProperty.dimensionCount !== "undefined" && id.lumiraProperty.dimensionCount !== iDimCount) {
+                    return false;
+                }
+                if (typeof id.lumiraProperty.measuresCount !== "undefined" && id.lumiraProperty.measuresCount !== iMeasCount) {
+                    return false;
+                }
+            }
+            if (typeof id.lumiraProperty.dataCellCount !== "undefined") {
+                let iDataCellCount = 0;
+                oItem.widget._uvbVizFrame.vizData().data().data.forEach(function (e) {
+                    iDataCellCount += e.length;
+                });
+                if (typeof id.lumiraProperty.dataCellCount !== "undefined" && id.lumiraProperty.dataCellCount !== iDataCellCount) {
+                    return false;
+                }
+            }
+        }
+
         if (id.aggregation) {
-            for (var sAggregationName in id.aggregation) {
-                var oAggr = id.aggregation[sAggregationName];
+            for (let sAggregationName in id.aggregation) {
+                let oAggr = id.aggregation[sAggregationName];
                 if (!oAggr.name) {
                     continue; //no sense to search without aggregation name..
                 }
@@ -306,32 +394,59 @@ export default Selector(id => {
             }
         }
         if (id.context) {
-            for (var sModel in id.context) {
-                var oCtx = oItem.getBindingContext(sModel === "undefined" ? undefined : sModel);
+            for (let sModel in id.context) {
+                let oCtx = oItem.getBindingContext(sModel === "undefined" ? undefined : sModel);
                 if (!oCtx) {
                     return false;
                 }
-                var oObjectCompare = oCtx.getObject();
+                let oObjectCompare = oCtx.getObject();
                 if (!oObjectCompare) {
                     return false;
                 }
-                var oObject = id.context[sModel];
-                for (var sAttr in oObject) {
+                let oObject = id.context[sModel];
+                for (let sAttr in oObject) {
                     if (oObject[sAttr] !== oObjectCompare[sAttr]) {
                         return false;
                     }
                 }
             }
         }
+
+        if (id.smartContext) {
+            var sModelName = "";
+            //"smart": maybe enable to search for more specific bindings based on the control - i.e. for texts, search for texts..
+            for (let sBinding in oItem.mBindingInfos) {
+                if (!oItem.mBindingInfos[sBinding].parts) {
+                    continue;
+                }
+                for (let i = 0; i < oItem.mBindingInfos[sBinding].parts.length; i++) {
+                    sModelName = oItem.mBindingInfos[sBinding].parts[i].model;
+                }
+            }
+            let oCtx = oItem.getBindingContext(sModelName);
+            if (!oCtx) {
+                return false;
+            }
+            let oObjectCompare = oCtx.getObject();
+            if (!oObjectCompare) {
+                return false;
+            }
+            for (let sAttr in id.smartContext) {
+                if (id.smartContext[sAttr] !== oObjectCompare[sAttr]) {
+                    return false;
+                }
+            }
+        }
+
         if (id.property) {
-            for (var sProperty in id.property) {
+            for (let sProperty in id.property) {
                 if (!oItem["get" + sProperty.charAt(0).toUpperCase() + sProperty.substr(1)]) {
                     //property is not even available in that item.. just skip it..
                     bFound = false;
                     break;
                 }
-                var sPropertyValueItem = oItem["get" + sProperty.charAt(0).toUpperCase() + sProperty.substr(1)]();
-                var sPropertyValueSearch = id.property[sProperty];
+                let sPropertyValueItem = oItem["get" + sProperty.charAt(0).toUpperCase() + sProperty.substr(1)]();
+                let sPropertyValueSearch = id.property[sProperty];
                 if (sPropertyValueItem !== sPropertyValueSearch) {
                     bFound = false;
                     break;
@@ -344,32 +459,32 @@ export default Selector(id => {
         return true;
     };
 
-    var aItem = null; //jQuery Object Array
-    if (typeof sap === "undefined" || typeof sap.ui === "undefined" || typeof sap.ui.getCore === "undefined" || !sap.ui.getCore() || !sap.ui.getCore().isInitialized()) {
+    let aItem = null; //jQuery Object Array
+    if (typeof _wnd.sap === "undefined" || typeof _wnd.sap.ui === "undefined" || typeof _wnd.sap.ui.getCore === "undefined" || !_wnd.sap.ui.getCore() || !_wnd.sap.ui.getCore().isInitialized()) {
         return [];
     }
 
 
-    var oCoreObject = null;
-    var fakePlugin = {
+    let oCoreObject = null;
+    let fakePlugin = {
         startPlugin: function (core) {
             oCoreObject = core;
             return core;
         }
     };
-    sap.ui.getCore().registerPlugin(fakePlugin);
-    sap.ui.getCore().unregisterPlugin(fakePlugin);
-    var aElements = {};
-    if (sap.ui.core.Element && sap.ui.core.Element.registry) {
-        aElements = sap.ui.core.Element.registry.all();
+    _wnd.sap.ui.getCore().registerPlugin(fakePlugin);
+    _wnd.sap.ui.getCore().unregisterPlugin(fakePlugin);
+    let aElements = {};
+    if (_wnd.sap.ui.core.Element && _wnd.sap.ui.core.Element.registry) {
+        aElements = _wnd.sap.ui.core.Element.registry.all();
     } else {
         aElements = oCoreObject.mElements;
     }
 
     //First Step: Early exits, in case anything suspicious is happening..
     //1.1: early exit in case of transitions..
-    for (var sElement in aElements) {
-        var oItem = aElements[sElement];
+    for (let sElement in aElements) {
+        let oItem = aElements[sElement];
         if (oItem instanceof sap.m.NavContainer) {
             if (oItem.bTransition2EndPending === true ||
                 oItem.bTransitionEndPending === true ||
@@ -380,17 +495,17 @@ export default Selector(id => {
         }
     }
 
-    var fnFindByComplexParameter = function (id) {
+    let fnFindByComplexParameter = function (id) {
         if (JSON.stringify(id) == JSON.stringify({})) {
             return [];
         }
 
 
         //search for identifier of every single object..
-        var bFound = false;
-        var sSelectorStringForJQuery = "";
-        for (var sElement in aElements) {
-            var oItem = aElements[sElement];
+        let bFound = false;
+        let sSelectorStringForJQuery = "";
+        for (let sElement in aElements) {
+            let oItem = aElements[sElement];
             bFound = true;
             bFound = _checkItem(oItem, id);
             if (bFound === false) {
@@ -443,14 +558,14 @@ export default Selector(id => {
                 continue;
             }
 
-            var sIdFound = oItem.getDomRef().id;
+            let sIdFound = oItem.getDomRef().id;
             if (sSelectorStringForJQuery.length) {
                 sSelectorStringForJQuery = sSelectorStringForJQuery + ",";
             }
             sSelectorStringForJQuery += "*[id$='" + sIdFound + "']";
         }
         if (sSelectorStringForJQuery.length) {
-            aItem = $(sSelectorStringForJQuery);
+            aItem = _wnd.$(sSelectorStringForJQuery);
         } else {
             aItem = [];
         }
@@ -465,12 +580,12 @@ export default Selector(id => {
         if (id.charAt(0) === '#') {
             id = id.substr(1); //remove the trailing "#" if any
         }
-        var searchId = "*[id$='" + id + "']";
-        aItem = $(searchId);
+        let searchId = "*[id$='" + id + "']";
+        aItem = _wnd.$(searchId);
 
         //fallbacks to make the API simpler - search for ui5-id as if the user would search for ids
         if (!aItem || !aItem.length || !aItem.control() || !aItem.control().length) {
-            //try to get via complex search parameters, i.E. via localId, via lumiraId and via 
+            //try to get via complex search parameters, i.E. via localId, via lumiraId and via
             aItem = fnFindByComplexParameter({
                 identifier: {
                     ui5AbsoluteId: id
@@ -492,20 +607,35 @@ export default Selector(id => {
             }
         }
     } else {
+        //adjust shortcuts..
+        if (id.elementName) {
+            id.metadata = id.metadata ? id.metadata : {};
+            id.metadata.elementName = id.elementName;
+        }
+        if (id.parentIdL2) {
+            id.parentL2 = id.parentL2 ? id.parentL2 : {};
+            id.parentL2.identifier = id.parentL2.identifier ? id.parentL2.identifier : {};
+            id.parentL2.identifier.ui5LocalId = id.parentIdL2;
+        }
+        if (id.parentId) {
+            id.parent = id.parent ? id.parent : {};
+            id.parent.identifier = id.parent.identifier ? id.parent.identifier : {};
+            id.parent.identifier.ui5LocalId = id.parentId;
+        }
         aItem = fnFindByComplexParameter(id);
     }
 
     if (!aItem || !aItem.length || !aItem.control() || !aItem.control().length) {
         return [];
-    } //no ui5 contol in case
+    }
 
     //try to make a "smart guess" (in case selector does not explicitly define it)
-    var oField = aItem.get(0);
+    let oField = aItem.get(0);
     if (oField instanceof sap.m.InputBase && typeof id.domChildWith === "undefined") {
         //get the "inner" field for input - we are always working with inner..
-        var sIdUsed = oField.id;
+        let sIdUsed = oField.id;
         if (sIdUsed && !sIdUsed.endsWith("-inner")) {
-            var oElement = document.getElementById(sIdUsed + "-inner");
+            let oElement = document.getElementById(sIdUsed + "-inner");
             if (oElement) {
                 aItem = [oElement];
             }
@@ -516,19 +646,28 @@ export default Selector(id => {
     return [aItem.get(0)];
 }).addCustomMethods({
     getUI5: (oDomNode, fn) => {
+        let _wnd = window;
+        let iFrames = document.getElementsByTagName("iframe");
+        for (let i = 0; i < iFrames.length; i++) {
+            if (iFrames[i].contentWindow && iFrames[i].contentWindow.sap) {
+                _wnd = iFrames[i].contentWindow;
+                break;
+            }
+        }
+
         //preprocessing ----------------- start
-        var aItem = $(oDomNode).control();
+        let aItem = _wnd.$(oDomNode).control();
         if (!aItem.length) {
             return {};
         }
-        var oItem = aItem[0];
+        let oItem = aItem[0];
         //preprocessing ---------------- end
 
 
         /****************************************/
         //GLOBALS
         /****************************************/
-        var oTestGlobalBuffer = {
+        let oTestGlobalBuffer = {
             fnGetElement: {
                 "true": {},
                 "false": {}
@@ -542,12 +681,17 @@ export default Selector(id => {
         };
         //on purpose implemented as local methods
         //this is not readable, but is a easy approach to transform those methods to the UI5Selector Stack (one single method approach)
-        var _getParentWithDom = function (oItem, iCounter) {
+
+        let _getParentWithDom = function (oItem, iCounter, bViewOnly) {
             oItem = oItem.getParent();
             while (oItem && oItem.getParent) {
                 if (oItem.getDomRef && oItem.getDomRef()) {
                     iCounter = iCounter - 1;
                     if (iCounter <= 0) {
+                        if (bViewOnly === true && !oItem.getViewData) {
+                            oItem = oItem.getParent();
+                            continue;
+                        }
                         return oItem;
                     }
                 }
@@ -555,39 +699,39 @@ export default Selector(id => {
             }
             return null;
         };
-        var _getUi5LocalId = function (oItem) {
-            var sId = oItem.getId();
+        let _getUi5LocalId = function (oItem) {
+            let sId = oItem.getId();
             if (sId.lastIndexOf("-") !== -1) {
                 return sId.substr(sId.lastIndexOf("-") + 1);
             }
             return sId;
         };
-        var _getItemForItem = function (oItem) {
+        let _getItemForItem = function (oItem) {
             //(0) check if we are already an item - no issue than..
-            if (oItem instanceof sap.ui.core.Item) {
+            if (oItem instanceof _wnd.sap.ui.core.Item) {
                 return oItem;
             }
 
             //(1) check by custom data..
             if (oItem.getCustomData()) {
-                for (var i = 0; i < oItem.getCustomData().length; i++) {
-                    var oObj = oItem.getCustomData()[i].getValue();
-                    if (oObj instanceof sap.ui.core.Item) {
+                for (let i = 0; i < oItem.getCustomData().length; i++) {
+                    let oObj = oItem.getCustomData()[i].getValue();
+                    if (oObj instanceof _wnd.sap.ui.core.Item) {
                         return oObj;
                     }
                 }
             }
 
             //(2) no custom data? search for combobox & multi-combo-box case..
-            var iIndex = 1;
-            var oPrt = oItem;
+            let iIndex = 1;
+            let oPrt = oItem;
             while (iIndex < 100) {
                 oPrt = _getParentWithDom(oItem, iIndex);
                 if (!oPrt) {
                     return null;
                 }
                 iIndex += 1;
-                var sElementName = oPrt.getMetadata().getElementName();
+                let sElementName = oPrt.getMetadata().getElementName();
                 if (oPrt && (sElementName === "sap.m.MultiComboBox" || sElementName === "sap.m.ComboBox")) {
                     if (oPrt._getItemByListItem) {
                         return oPrt._getItemByListItem(oItem);
@@ -597,42 +741,43 @@ export default Selector(id => {
             return null;
         };
 
-        var _getAllLabels = function () {
+        let _getAllLabels = function () {
             if (oTestGlobalBuffer.label) {
                 return oTestGlobalBuffer.label;
             }
             oTestGlobalBuffer.label = {};
-            var oCoreObject = null;
-            var fakePlugin = {
+            let oCoreObject = null;
+            let fakePlugin = {
                 startPlugin: function (core) {
                     oCoreObject = core;
                     return core;
                 }
             };
-            sap.ui.getCore().registerPlugin(fakePlugin);
-            sap.ui.getCore().unregisterPlugin(fakePlugin);
+            _wnd.sap.ui.getCore().registerPlugin(fakePlugin);
+            _wnd.sap.ui.getCore().unregisterPlugin(fakePlugin);
 
-            var aElements = {};
-            if (sap.ui.core.Element && sap.ui.core.Element.registry) {
-                aElements = sap.ui.core.Element.registry.all();
+            let aElements = {};
+            if (_wnd.sap.ui.core.Element && _wnd.sap.ui.core.Element.registry) {
+                aElements = _wnd.sap.ui.core.Element.registry.all();
             } else {
                 aElements = oCoreObject.mElements;
             }
 
-            for (var sCoreObject in aElements) {
-                var oObject = aElements[sCoreObject];
+            for (let sCoreObject in aElements) {
+                let oObject = aElements[sCoreObject];
                 if (oObject.getMetadata()._sClassName === "sap.m.Label") {
-                    var oLabelFor = oObject.getLabelFor ? oObject.getLabelFor() : null;
+                    let oLabelFor = oObject.getLabelFor ? oObject.getLabelFor() : null;
                     if (oLabelFor) {
                         oTestGlobalBuffer.label[oLabelFor] = oObject; //always overwrite - i am very sure that is correct
                     } else {
                         //yes.. labelFor is maintained in one of 15 cases (fuck it)
                         //for forms it seems to be filled "randomly" - as apparently no developer is maintaing that correctly
                         //we have to search UPWARDS, and hope we are within a form.. in that case, normally we can just take all the fields aggregation elements
+                        // eslint-disable-next-line no-lonely-if
                         if (oObject.getParent() && oObject.getParent().getMetadata()._sClassName === "sap.ui.layout.form.FormElement") {
                             //ok.. we got luck.. let's assign all fields..
-                            var oFormElementFields = oObject.getParent().getFields();
-                            for (var j = 0; j < oFormElementFields.length; j++) {
+                            let oFormElementFields = oObject.getParent().getFields();
+                            for (let j = 0; j < oFormElementFields.length; j++) {
                                 if (!oTestGlobalBuffer.label[oFormElementFields[j].getId()]) {
                                     oTestGlobalBuffer.label[oFormElementFields[j].getId()] = oObject;
                                 }
@@ -646,16 +791,16 @@ export default Selector(id => {
             return oTestGlobalBuffer.label;
         };
 
-        var _getLabelForItem = function (oItem) {
-            var aItems = _getAllLabels();
+        let _getLabelForItem = function (oItem) {
+            let aItems = _getAllLabels();
             return (aItems && aItems[oItem.getId()]) ? aItems[oItem.getId()] : null;
         };
 
 
-        var _getUi5Id = function (oItem) {
+        let _getUi5Id = function (oItem) {
             //remove all component information from the control
-            var oParent = oItem;
-            var sCurrentComponent = "";
+            let oParent = oItem;
+            let sCurrentComponent = "";
             while (oParent && oParent.getParent) {
                 if (oParent.getController && oParent.getController() && oParent.getController().getOwnerComponent && oParent.getController().getOwnerComponent()) {
                     sCurrentComponent = oParent.getController().getOwnerComponent().getId();
@@ -667,7 +812,7 @@ export default Selector(id => {
                 return oItem.getId();
             }
 
-            var sId = oItem.getId();
+            let sId = oItem.getId();
             sCurrentComponent = sCurrentComponent + "---";
             if (sId.lastIndexOf(sCurrentComponent) !== -1) {
                 return sId.substr(sId.lastIndexOf(sCurrentComponent) + sCurrentComponent.length);
@@ -675,8 +820,8 @@ export default Selector(id => {
             return sId;
         };
 
-        var _getOwnerComponent = function (oParent) {
-            var sCurrentComponent = "";
+        let _getOwnerComponent = function (oParent) {
+            let sCurrentComponent = "";
             while (oParent && oParent.getParent) {
                 if (oParent.getController && oParent.getController() && oParent.getController().getOwnerComponent && oParent.getController().getOwnerComponent()) {
                     sCurrentComponent = oParent.getController().getOwnerComponent().getId();
@@ -686,33 +831,33 @@ export default Selector(id => {
             }
             return sCurrentComponent;
         };
-        var fnGetBindingContextInformation = function (oItem, sModel) {
-            var oCtx = oItem.getBindingContext(sModel === "undefined" ? undefined : sModel);
+        let fnGetBindingContextInformation = function (oItem, sModel) {
+            let oCtx = oItem.getBindingContext(sModel === "undefined" ? undefined : sModel);
             if (!oCtx) {
                 return null;
             }
             return oCtx.getPath();
         };
 
-        var fnGetBindingInformation = function (oItem, sBinding) {
-            var oBindingInfo = oItem.getBindingInfo(sBinding);
-            var oBinding = oItem.getBinding(sBinding);
-            var oReturn = {};
+        let fnGetBindingInformation = function (oItem, sBinding) {
+            let oBindingInfo = oItem.getBindingInfo(sBinding);
+            let oBinding = oItem.getBinding(sBinding);
+            let oReturn = {};
             if (!oBindingInfo) {
                 return oReturn;
             }
 
             //not really perfect for composite bindings (what we are doing here) - we are just returning the first for that..
             //in case of a real use case --> enhance
-            var oRelevantPart = oBindingInfo;
+            let oRelevantPart = oBindingInfo;
 
             if (oBindingInfo.parts && oBindingInfo.parts.length > 0) {
                 oRelevantPart = oBindingInfo.parts[0];
             }
 
             //get the binding context we are relevant for..
-            var oBndgContext = oItem.getBindingContext(oRelevantPart.model);
-            var sPathPre = oBndgContext ? oBndgContext.getPath() + "/" : "";
+            let oBndgContext = oItem.getBindingContext(oRelevantPart.model);
+            let sPathPre = oBndgContext ? oBndgContext.getPath() + "/" : "";
 
             if (oBinding) {
                 oReturn = {
@@ -730,21 +875,202 @@ export default Selector(id => {
             return oReturn;
         };
 
-        var fnGetContextModels = function (oItem) {
-            var oReturn = {};
+
+        var fnGetTableData = function fnGetTableData(oItem) {
+            let oReturn = {};
+            if (oItem.getMetadata()._sClassName === "sap.zen.crosstab.Crosstab" && oItem.oHeaderInfo) {
+                //dimensions:
+                let iDimensionsColAxis = oItem.oHeaderInfo.getNumberOfDimensionsOnColsAxis();
+                let iDimensionsRowAxis = oItem.oHeaderInfo.getNumberOfDimensionsOnRowsAxis();
+                let oDimCols = {};
+                let oDimRows = {};
+                let i = 0;
+                oReturn.visibleDimensionsCol = [];
+                oReturn.visibleDimensionsRow = [];
+                oReturn.data = [];
+                for (i = 0; i < iDimensionsColAxis; i++) {
+                    oDimCols[i] = oItem.oHeaderInfo.getDimensionNameByRow(i);
+                    oReturn.visibleDimensionsCol.push(oDimCols[i]);
+                }
+                for (i = 0; i < iDimensionsRowAxis; i++) {
+                    oDimRows[i] = oItem.oHeaderInfo.getDimensionNameByCol(i);
+                    oReturn.visibleDimensionsRow.push(oDimRows[i]);
+                }
+
+                let aDataCells = oItem.getAggregation("dataCells");
+                for (i = 0; i < aDataCells.length; i++) {
+                    let oDataCell = aDataCells[i].mProperties;
+
+                    //we have our row && col --> get all corresponding attributes..
+                    let oDataLine = {};
+                    for (let x = 0; x < iDimensionsRowAxis; x++) {
+                        let oColVal = oItem.rowHeaderArea.oDataModel.getCell(oDataCell.tableRow - iDimensionsColAxis, x);
+                        if (!oColVal) {
+                            continue;
+                        }
+                        oDataLine[oDimRows[x]] = oColVal.mProperties.text;
+                    }
+                    for (let x = 0; x < iDimensionsColAxis; x++) {
+                        let oColVal = oItem.columnHeaderArea.oDataModel.getCell(oDataCell.tableCol - iDimensionsRowAxis, x);
+                        if (!oColVal) {
+                            continue;
+                        }
+                        oDataLine[oDimCols[x]] = oColVal.mProperties.text;
+                    }
+                    oDataLine.cellValue = oDataCell.text;
+                    oDataLine.tableRow = oDataCell.tableRow - iDimensionsColAxis;
+                    oDataLine.tableCol = oDataCell.tableCol - iDimensionsRowAxis;
+                    oReturn.data.push(oDataLine);
+                }
+
+                oReturn.data = oReturn.data.sort(function (a, b) {
+                    if (a.tableRow < b.tableRow) {
+                        return -1;
+                    } else if (a.tableRow > b.tableRow) {
+                        return 1;
+                    } else if (a.tableCol < b.tableCol) {
+                        return -1;
+                    } else {
+                        return 1;
+                    }
+                });
+            } else if (oItem.getMetadata()._sClassName === "sap.designstudio.sdk.AdapterControl" &&
+                oItem.zenType === "com_sap_ip_bi_VizFrame" && oItem.widget) {
+                oReturn.feeds = [];
+
+                let aFeedItems = JSON.parse(oItem.widget.feedItems());
+                for (let i = 0; i < aFeedItems.length; i++) {
+                    oReturn.feeds.push({
+                        type: aFeedItems[i].type,
+                        id: aFeedItems[i].id,
+                        dimensions: aFeedItems[i].values.filter(function (e) {
+                            return e.type === "dimension";
+                        }).map(function (e) {
+                            return {
+                                id: e.id,
+                                name: e.name
+                            }
+                        }),
+                        measures: aFeedItems[i].values.filter(function (e) {
+                            return e.type === "measure";
+                        }).map(function (e) {
+                            return {
+                                id: e.id,
+                                name: e.name
+                            }
+                        }),
+                    });
+                }
+
+                //hardcore internal:
+                let aDataPoints = oItem.widget._uvbVizFrame.chart()._chartView()._chart.app._dataModel.dataModel.getDataPoints();
+
+                let chartData = oItem.widget._uvbVizFrame.vizData().data();
+                oReturn.data = [];
+                oReturn.dimensions = chartData.metadata.fields.filter(function (e) {
+                    return e.type === "Dimension";
+                }).map(function (e) {
+                    return {
+                        id: e.id,
+                        name: e.name
+                    };
+                });
+
+                oReturn.measures = chartData.metadata.fields.filter(function (e) {
+                    return e.type === "Measure";
+                }).map(function (e) {
+                    return {
+                        id: e.id,
+                        name: e.name
+                    };
+                });
+
+                for (let i = 0; i < chartData.data.length; i++) {
+                    let oDataLine = {};
+                    for (let k = 0; k < oReturn.dimensions.length; k++) {
+                        oDataLine[oReturn.dimensions[k].id] = chartData.data[i][k].v;
+                        oDataLine[oReturn.dimensions[k].id + ".d"] = chartData.data[i][k].d;
+                    }
+                    let oDataPointSearch = oDataLine;
+                    for (let j = oReturn.dimensions.length; j < chartData.data[i].length; j++) {
+                        oDataLine[oReturn.measures[j - oReturn.dimensions.length].id] = chartData.data[i][j];
+
+                        oDataPointSearch[oReturn.measures[j - oReturn.dimensions.length].id] = chartData.data[i][j];
+
+                        //try to find the datapoint per dimensions..
+                        for (let k = 0; k < aDataPoints.length; k++) {
+                            let oDataPointData = aDataPoints[k]._data;
+                            let bFalse = false;
+                            for (let sData in oDataPointData) {
+                                if (oDataPointData[sData] != oDataPointSearch[sData]) {
+                                    bFalse = true;
+                                    break;
+                                }
+                            }
+                            if (bFalse === true) {
+                                continue;
+                            }
+                            //we have the datapoint!!!
+                            oDataPointSearch[oReturn.measures[j - oReturn.dimensions.length].id + "_selector"] = "[data-datapoint-id='" + aDataPoints[k].id + "']";
+                            break;
+                        }
+                    }
+
+                    oReturn.data.push(oDataLine);
+                }
+            } else if (oItem.getMetadata()._sClassName === "sap.m.Table") {
+                let oBndg = oItem.getBinding("items");
+                if (oBndg) {
+                    let aContext = oBndg.getContexts(0, oBndg.getLength());
+                    oReturn.finalLength = oBndg.getLength();
+                    oReturn.data = [];
+                    for (let i = 0; i < aContext.length; i++) {
+                        oReturn.data.push(aContext[i]).getObject();
+                    }
+                }
+            } else if (oItem.getMetadata()._sClassName === "sap.ui.table.Table" || oItem.getMetadata()._sClassName === "sap.ui.table.TreeTable") {
+                let oBndg = oItem.getBinding("rows");
+                if (oBndg) {
+                    let aContext = oBndg.getContexts(0, oBndg.getLength());
+                    oReturn.finalLength = oBndg.getLength();
+                    oReturn.data = [];
+                    for (let i = 0; i < aContext.length; i++) {
+                        oReturn.data.push(aContext[i]).getObject();
+                    }
+                }
+            } else if (oItem.getMetadata()._sClassName === "sap.m.MultiInput") {
+                let oToken = oItem.getTokens();
+                oReturn = [];
+                for (let i = 0; i < oToken.length; i++) {
+                    oReturn.push({
+                        key: oToken[i].getKey(),
+                        text: oToken[i].getText()
+                    });
+                }
+            }
+            return oReturn;
+        };
+
+
+        let fnGetContextModels = function (oItem) {
+            let oReturn = {};
 
             if (!oItem) {
                 return oReturn;
             }
 
-            var oModel = {};
-            oModel = $.extend(true, oModel, oItem.oModels);
-            oModel = $.extend(true, oModel, oItem.oPropagatedProperties.oModels);
+            let oModel = oItem.oModels;
+            for (let s in oItem.oPropagatedProperties.oModels) {
+                if (!oModel[s]) {
+                    oModel[s] = oItem.oPropagatedProperties.oModels[s];
+                }
+            }
+
             return oModel;
         };
 
-        var fnGetElementInformation = function (oItem, oDomNode, bFull) {
-            var oReturn = {
+        let fnGetElementInformation = function (oItem, oDomNode, bFull, bCurElement) {
+            let oReturn = {
                 property: {},
                 aggregation: [],
                 association: {},
@@ -753,6 +1079,7 @@ export default Selector(id => {
                 context: {},
                 model: {},
                 metadata: {},
+                lumiraProperty: {},
                 viewProperty: {},
                 classArray: [],
                 identifier: {
@@ -766,7 +1093,8 @@ export default Selector(id => {
                     lumiraId: ""
                 },
                 control: null,
-                dom: null
+                dom: null,
+                insideATable: false
             };
             bFull = typeof bFull === "undefined" ? true : bFull;
 
@@ -785,9 +1113,8 @@ export default Selector(id => {
             oReturn.identifier.ui5Id = _getUi5Id(oItem);
             oReturn.identifier.ui5LocalId = _getUi5LocalId(oItem);
 
-
             oReturn.classArray = [];
-            var oMeta = oItem.getMetadata();
+            let oMeta = oItem.getMetadata();
             while (oMeta) {
                 oReturn.classArray.push({
                     elementName: oMeta._sClassName
@@ -800,7 +1127,7 @@ export default Selector(id => {
                 oReturn.identifier.idCloned = true;
             } else {
                 //check as per metadata..
-                var oMetadata = oItem.getMetadata();
+                let oMetadata = oItem.getMetadata();
                 while (oMetadata) {
                     if (!oMetadata._sClassName) {
                         break;
@@ -844,17 +1171,17 @@ export default Selector(id => {
             }
 
             //enhance component information..
-            var oComponent = sap.ui.getCore().getComponent(oReturn.metadata.componentName);
+            let oComponent = _wnd.sap.ui.getCore().getComponent(oReturn.metadata.componentName);
             if (oComponent) {
-                var oManifest = oComponent.getManifest();
+                let oManifest = oComponent.getManifest();
                 if (oManifest && oManifest["sap.app"]) {
-                    var oApp = oManifest["sap.app"];
+                    let oApp = oManifest["sap.app"];
                     oReturn.metadata.componentId = oApp.id;
                     oReturn.metadata.componentTitle = oApp.title;
                     oReturn.metadata.componentDescription = oApp.description;
                     if (oApp.dataSources) {
-                        for (var sDs in oApp.dataSources) {
-                            var oDS = oApp.dataSources[sDs];
+                        for (let sDs in oApp.dataSources) {
+                            let oDS = oApp.dataSources[sDs];
                             if (oDS.type !== "OData") {
                                 continue;
                             }
@@ -873,7 +1200,7 @@ export default Selector(id => {
             }
 
             //view..
-            var oView = _getParentWithDom(oItem, 1, true);
+            let oView = _getParentWithDom(oItem, 1, true);
             if (oView) {
                 if (oView.getProperty("viewName")) {
                     oReturn.viewProperty.viewName = oView.getProperty("viewName");
@@ -885,7 +1212,7 @@ export default Selector(id => {
             }
 
             //bindings..
-            for (var sBinding in oItem.mBindingInfos) {
+            for (let sBinding in oItem.mBindingInfos) {
                 oReturn.binding[sBinding] = fnGetBindingInformation(oItem, sBinding);
             }
 
@@ -893,20 +1220,20 @@ export default Selector(id => {
             //very special for "sap.m.Label"..
             if (oReturn.metadata.elementName === "sap.m.Label" && !oReturn.binding.text) {
                 if (oItem.getParent() && oItem.getParent().getMetadata()._sClassName === "sap.ui.layout.form.FormElement") {
-                    var oParentBndg = oItem.getParent().getBinding("label");
+                    let oParentBndg = oItem.getParent().getBinding("label");
                     if (oParentBndg) {
                         oReturn.binding["text"] = {
                             path: oParentBndg.sPath && oParentBndg.getPath(),
-                            "static": oParentBndg.oModel && oParentBndg.getModel() instanceof sap.ui.model.resource.ResourceModel
+                            "static": oParentBndg.oModel && oParentBndg.getModel() instanceof _wnd.sap.ui.model.resource.ResourceModel
                         };
                     }
                 }
             }
 
             //binding context
-            var aModels = fnGetContextModels(oItem);
-            for (var sModel in aModels) {
-                var oBndg = fnGetBindingContextInformation(oItem, sModel);
+            let aModels = fnGetContextModels(oItem);
+            for (let sModel in aModels) {
+                let oBndg = fnGetBindingContextInformation(oItem, sModel);
                 if (!oBndg) {
                     continue;
                 }
@@ -914,11 +1241,11 @@ export default Selector(id => {
             }
 
             //return all simple properties
-            for (var sProperty in oItem.mProperties) {
+            for (let sProperty in oItem.mProperties) {
                 if (typeof oItem.mProperties[sProperty] === "function" || typeof oItem.mProperties[sProperty] === "object") {
                     continue;
                 }
-                var fnGetter = oItem["get" + sProperty.charAt(0).toUpperCase() + sProperty.substr(1)];
+                let fnGetter = oItem["get" + sProperty.charAt(0).toUpperCase() + sProperty.substr(1)];
                 if (fnGetter) {
                     oReturn.property[sProperty] = fnGetter.call(oItem);
                 } else {
@@ -926,21 +1253,66 @@ export default Selector(id => {
                 }
             }
 
+            if (oItem.getMetadata()._sClassName === "sap.zen.crosstab.Crosstab") {
+                oReturn.lumiraProperty["numberOfDimensionsOnRow"] = oItem.oHeaderInfo ? oItem.oHeaderInfo.getNumberOfDimensionsOnRowsAxis() : 0;
+                oReturn.lumiraProperty["numberOfDimensionsOnCol"] = oItem.oHeaderInfo ? oItem.oHeaderInfo.getNumberOfDimensionsOnColsAxis() : 0;
+                oReturn.lumiraProperty["numberOfRows"] = oItem.rowHeaderArea ? oItem.rowHeaderArea.oDataModel.getRowCnt() : 0;
+                oReturn.lumiraProperty["numberOfCols"] = oItem.columnHeaderArea ? oItem.columnHeaderArea.oDataModel.getColCnt() : 0;
+                oReturn.lumiraProperty["numberOfDataCells"] = oItem.getAggregation("dataCells").length;
+            }
+            if (oItem.getMetadata()._sClassName === "sap.designstudio.sdk.AdapterControl" &&
+                oItem.zenType === "com_sap_ip_bi_VizFrame" && oItem.widget) {
+                oReturn.lumiraProperty["chartTitle"] = oItem.widget.getTitleTextInternal();
+                oReturn.lumiraProperty["chartType"] = oItem.widget.vizType();
+                let aFeedItems = JSON.parse(oItem.widget.feedItems());
+                oReturn.lumiraProperty["dimensionCount"] = 0;
+                oReturn.lumiraProperty["measuresCount"] = 0;
+                aFeedItems.filter(function (e) {
+                    return e.type == "Dimension";
+                }).forEach(function (e) {
+                    oReturn.lumiraProperty["dimensionCount"] += e.values.length;
+                });
+                aFeedItems.filter(function (e) {
+                    return e.type == "Measure";
+                }).forEach(function (e) {
+                    oReturn.lumiraProperty["measuresCount"] += e.values.length;
+                });
+
+                oReturn.lumiraProperty["dataCellCount"] = 0;
+                oItem.widget._uvbVizFrame.vizData().data().data.forEach(function (e) {
+                    oReturn.lumiraProperty["numberOfDataCells"] += e.length;
+                });
+            }
+
             //return all binding contexts
             oReturn.context = fnGetContexts(oItem);
 
+            if (bCurElement) {
+                oReturn.tableData = fnGetTableData(oItem);
+            }
+
+            let oParent = oItem.getParent();
+            while (oParent) {
+                var sControl = oParent.getMetadata()._sClassName;
+                if (sControl === "sap.m.Table" || sControl === "sap.ui.table.Table" || sControl === "sap.ui.table.TreeTable" || sControl === "sap.zen.crosstab.Crosstab") {
+                    oReturn.insideATable = true;
+                    break;
+                }
+                oParent = oParent.getParent();
+            }
+
             //get model information..
-            var oMetadata = oItem.getMetadata();
+            let oMetadata = oItem.getMetadata();
             oReturn.model = {};
 
             //return length of all aggregations
-            var aMetadata = oItem.getMetadata().getAllAggregations();
-            for (var sAggregation in aMetadata) {
+            let aMetadata = oItem.getMetadata().getAllAggregations();
+            for (let sAggregation in aMetadata) {
                 if (aMetadata[sAggregation].multiple === false) {
                     continue;
                 }
-                var aAggregation = oItem["get" + sAggregation.charAt(0).toUpperCase() + sAggregation.substr(1)]();
-                var oAggregationInfo = {
+                let aAggregation = oItem["get" + sAggregation.charAt(0).toUpperCase() + sAggregation.substr(1)]();
+                let oAggregationInfo = {
                     rows: [],
                     filled: false,
                     name: sAggregation,
@@ -952,7 +1324,7 @@ export default Selector(id => {
                 }
 
                 //for every single line, get the binding context, and the row id, which can later on be analyzed again..
-                for (var i = 0; i < aAggregation.length; i++) {
+                for (let i = 0; i < aAggregation.length; i++) {
                     oAggregationInfo.rows.push({
                         context: fnGetContexts(aAggregation[i]),
                         ui5Id: _getUi5Id(aAggregation[i]),
@@ -972,20 +1344,23 @@ export default Selector(id => {
         };
 
         //missing: get elements with same parent, to get elements "right next", "left" and on same level
-        var fnGetContexts = function (oItem) {
-            var oReturn = {};
+        let fnGetContexts = function (oItem) {
+            let oReturn = {};
 
             if (!oItem) {
                 return oReturn;
             }
 
-            var oModel = {};
-            oModel = $.extend(true, oModel, oItem.oModels);
-            oModel = $.extend(true, oModel, oItem.oPropagatedProperties.oModels);
+            let oModel = oItem.oModels;
+            for (let s in oItem.oPropagatedProperties.oModels) {
+                if (!oModel[s]) {
+                    oModel[s] = oItem.oPropagatedProperties.oModels[s];
+                }
+            }
 
             //second, get all binding contexts
-            for (var sModel in oModel) {
-                var oBindingContext = oItem.getBindingContext(sModel === "undefined" ? undefined : sModel);
+            for (let sModel in oModel) {
+                let oBindingContext = oItem.getBindingContext(sModel === "undefined" ? undefined : sModel);
                 if (!oBindingContext) {
                     continue;
                 }
@@ -995,7 +1370,7 @@ export default Selector(id => {
             return oReturn;
         };
 
-        var oReturn = {
+        let oReturn = {
             property: {},
             aggregation: {},
             association: {},
@@ -1016,7 +1391,8 @@ export default Selector(id => {
             itemdata: {},
             parents: [],
             control: null,
-            dom: null
+            dom: null,
+            insideATable: false
         };
 
         if (!oItem) {
@@ -1024,7 +1400,7 @@ export default Selector(id => {
         }
 
         //local methods on purpose (even if duplicated) (see above)
-        oReturn = $.extend(true, oReturn, fnGetElementInformation(oItem, oDomNode));
+        oReturn = fnGetElementInformation(oItem, oDomNode, true, true);
 
         //get all parents, and attach the same information in the same structure
         oReturn.parent = fnGetElementInformation(_getParentWithDom(oItem, 1));
@@ -1036,20 +1412,21 @@ export default Selector(id => {
 
         ///POSTPROCESSING ----------------------
         delete oReturn.control;
+        delete oReturn.dom;
+        delete oReturn.parent.control;
         delete oReturn.parent.dom;
+        delete oReturn.parentL2.control;
         delete oReturn.parentL2.dom;
+        delete oReturn.parentL3.control;
         delete oReturn.parentL3.dom;
+        delete oReturn.parentL4.control;
         delete oReturn.parentL4.dom;
 
         const element = oReturn;
         if (typeof fn === 'function') {
-            return fn({
-                element
-            });
+            return fn(element);
         }
 
-        return {
-            element
-        };
+        return element;
     }
 });

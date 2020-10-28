@@ -5,6 +5,11 @@ import { Selector } from 'testcafe';
 declare global {
     interface UI5SelectorDefIdentification {
         /**
+         * For getUI5() the "ui5Id" - for checking, it will search all id patterns (ui5Id, ui5LocalId, domId, lumiraId)
+         */
+        id ?: string;
+
+        /**
          * UI5 ID, including all parent IDs, but without a component ID
          */
         ui5Id?: string,
@@ -16,6 +21,10 @@ declare global {
          * DOM ID of the root HTML element - should normally not be used
          */
         domId?: string,
+        /**
+         * For Lumira Applications: Lumira Identifier
+         */
+        lumriaId?: string,
         /**
          * true in case the item referes to a cloned item-list (e.g. item 1 in a list)
          */
@@ -38,8 +47,18 @@ declare global {
         [property: string]: string | number | boolean;
     };
 
+    interface UI5LumiraProperty {
+        [property: string]: string | number | boolean;
+    };
+
     interface UI5BindingDefMetadata {
         [binding: string]: UI5BindingDefProperty
+    };
+
+    interface UI5TableData {
+        visibleDimensionsCol: string[];
+        visibleDimensionsRow: string[];
+        data: any[];
     };
 
     interface UI5BindingContextDefMetadata {
@@ -48,7 +67,11 @@ declare global {
 
     interface UI5SelectorDefMetadata {
         elementName?: string,
-        componentName?: string
+        componentName?: string,
+        /**
+         * For Lumira Applications: Lumira Element Type
+         */
+        lumiraType?: string,
     };
 
     interface UI5SelectorDefChildren {
@@ -85,6 +108,15 @@ declare global {
          * Example: { undefined: { purchaseOrderId: '12345' }}
          */
         context?: any,
+        
+        /**
+         * Identical to "context", but not using any model-name, for better upgradeability
+         * It is searching for local bindings and taking the model-name defined here..
+         * 
+         */
+        smartContext?: any,
+
+        tableData?: UI5TableData,
 
         binding?: UI5BindingDefMetadata,
 
@@ -93,6 +125,8 @@ declare global {
         itemdata?: any,
 
         property?: UI5PropertyDefMetadata,
+
+        lumiraProperty ?: UI5LumiraProperty,
 
         domChildWith?: string,
 
@@ -112,7 +146,17 @@ declare global {
          * Information about the 4 elements above the current item (Level 4)
          */
         parentL4?: UI5SelectorDef,
-        children?: UI5SelectorDef[]
+        children?: UI5SelectorDef[],
+
+        //shortcut for very common used elements..
+        elementName?: string,
+        parentId ?: string,
+        parentIdL2 ?: string,
+        
+        /**
+         * Set in case any parent is of type sap.m.Table, sap.ui.table.Table, sap.ui.table.TreeTable or sap.zen.crosstab.Crosstab
+         */
+        insideATable ?: boolean
     };
 
     type UI5SelectorCallback = ({ element }: { element: any; }) => UI5SelectorDef;
