@@ -295,6 +295,29 @@ export default Selector(id => {
             }
         }
 
+        if (id.metadata && typeof id.metadata.interactable !== "undefined") {
+            var bPropVisible = oItem["getVisible"] ? oItem["getVisible"]() : null;
+            var bPropEnabled = oItem["getEnabled"] ? oItem["getEnabled"]() : null;
+
+            if ((id.metadata.interactable != bPropEnabled && bPropEnabled !== null) ||
+                (id.metadata.interactable != bPropVisible && bPropVisible !== null)) {
+                return false;
+            }
+            if (id.metadata.interactable === true) {
+                if (oItem.bNeedsRerendering) { //don't interact, we are currently rerendering
+                    return false;
+                }
+                //check if me or any direct parent is busy..
+                var oCur = oItem;
+                while (oCur) {
+                    if (oCur.getBusy && oCur.getBusy() === true) {
+                        return false;
+                    }
+                    oCur = oCur.getParent();
+                }
+            }
+        }
+
         if (id.parentAnyLevel) {
             //not all elements are supported - we will only take care of the absolute basics here (property, id and element matching for the moment..)
             let bFoundParentId = false;
@@ -639,7 +662,6 @@ export default Selector(id => {
             }
         }
     }
-    
     //1.2: early exit in case of global busy indicator..
     if (_wnd.$("#sap-ui-blocklayer-popup").css("display") === "block") {
         return [];
