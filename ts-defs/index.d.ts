@@ -7,7 +7,7 @@ declare global {
         /**
          * For getUI5() the "ui5Id" - for checking, it will search all id patterns (ui5Id, ui5LocalId, domId, lumiraId)
          */
-        id ?: string;
+        id?: string;
 
         /**
          * UI5 ID, including all parent IDs, but without a component ID
@@ -37,45 +37,53 @@ declare global {
          * The absolute UI5 Identifier, including all information (getId())
          */
         ui5AbsoluteId?: string
-    };
+    }
 
     interface UI5BindingDefProperty {
         path: string
-    };
+    }
 
     interface UI5PropertyDefMetadata {
         [property: string]: string | number | boolean;
-    };
+    }
 
     interface UI5LumiraProperty {
         [property: string]: string | number | boolean;
-    };
+    }
 
     interface UI5BindingDefMetadata {
         [binding: string]: UI5BindingDefProperty
-    };
+    }
 
     interface UI5TableData {
-        visibleDimensionsCol: string[];
-        visibleDimensionsRow: string[];
+        visibleDimensionsCol?: string[];
+        visibleDimensionsRow?: string[];
+        finalLength?: number;
         data: any[];
-    };
+    }
 
     interface UI5BindingContextDefMetadata {
         [binding: string]: string
-    };
+    }
 
     interface UI5SelectorDefMetadata {
-        elementName?: string,
+        elementName?: string | string[],
         componentName?: string,
         /**
          * For Lumira Applications: Lumira Element Type
          */
         lumiraType?: string,
-    };
+        interactable?: boolean
+    }
 
     interface UI5SelectorDefChildren {
-    };
+    }
+
+    interface UI5TableSettings {
+        insideATable?: boolean;
+        tableRow?: number;
+        tableCol?: number;
+    }
 
 
     interface UI5SelectorDef {
@@ -108,7 +116,7 @@ declare global {
          * Example: { undefined: { purchaseOrderId: '12345' }}
          */
         context?: any,
-        
+
         /**
          * Identical to "context", but not using any model-name, for better upgradeability
          * It is searching for local bindings and taking the model-name defined here..
@@ -126,9 +134,11 @@ declare global {
 
         property?: UI5PropertyDefMetadata,
 
-        lumiraProperty ?: UI5LumiraProperty,
+        lumiraProperty?: UI5LumiraProperty,
 
         domChildWith?: string,
+
+        parentAnyLevel?: UI5SelectorDef;
 
         /**
          * Information about the direct parent
@@ -148,16 +158,11 @@ declare global {
         parentL4?: UI5SelectorDef,
         children?: UI5SelectorDef[],
 
-        //shortcut for very common used elements..
-        elementName?: string,
-        parentId ?: string,
-        parentIdL2 ?: string,
-        
         /**
          * Set in case any parent is of type sap.m.Table, sap.ui.table.Table, sap.ui.table.TreeTable or sap.zen.crosstab.Crosstab
          */
-        insideATable ?: boolean
-    };
+        tableSettings?: UI5TableSettings;
+    }
 
     type UI5SelectorCallback = ({ element }: { element: any; }) => UI5SelectorDef;
 
@@ -171,26 +176,26 @@ declare global {
          * t.expect( UI5Selector("id").getUI5(function(e) { return e.property.selectedKey }).eql(3) )
          */
         getUI5(filter?: UI5SelectorCallback): UI5SelectorDef;
-    };
+    }
 
     interface SupportAssistantResultLine {
         context: string,
         details: string
-    };
+    }
 
     interface SupportAssistantResult {
         High: SupportAssistantResultLine[];
         Medium: SupportAssistantResultLine[];
         Low: SupportAssistantResultLine[];
-    };
+    }
 
     interface Utils {
-        boLogin(t: TestController, userName: string, password: string) : void;
-        launchpadLogin(t: TestController, userName: string, password: string) : void;
+        boLogin(t: TestController, userName: string, password: string): void;
+        launchpadLogin(t: TestController, userName: string, password: string): void;
         supportAssistant(t: TestController, componentNamem?: string): SupportAssistantResult;
-    };
+    }
 }
 
-export var utils: Utils   
-export function UI5Selector(id: UI5SelectorDef | string): Selector
+export var utils: Utils
+export function UI5Selector(id: UI5SelectorDef | string, options?: SelectorOptions): Selector
 export function waitForUI5(): Promise<void>

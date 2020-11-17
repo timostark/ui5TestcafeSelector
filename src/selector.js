@@ -224,14 +224,53 @@ export default Selector(id => {
         if (!oItem) { //e.g. parent level is not existing at all..
             return false;
         }
-        if (id.metadata) {
-            if (id.metadata.elementName && id.metadata.elementName !== oItem.getMetadata().getElementName()) {
+
+        if (id.identifier) {
+            if (id.identifier.ui5Id && id.identifier.ui5Id !== _getUi5Id(oItem)) {
                 return false;
+            }
+            if (id.identifier.ui5LocalId && id.identifier.ui5LocalId !== _getUi5LocalId(oItem)) {
+                return false;
+            }
+            if (id.identifier.lumiraId && id.identifier.lumiraId !== _getLumiraId(oItem)) {
+                return false;
+            }
+            if (id.identifier.id) {
+                if (id.identifier.id !== _getUi5Id(oItem) && id.identifier.id !== _getUi5LocalId(oItem) && id.identifier.id !== _getLumiraId(oItem)) {
+                    return false;
+                }
+            }
+        }
+
+        if (id.metadata) {
+            if (id.metadata.elementName) {
+                let aClassArray = [];
+                let oMeta = oItem.getMetadata();
+                while (oMeta) {
+                    aClassArray.push(oMeta._sClassName);
+                    oMeta = oMeta.getParent();
+                }
+
+                if (_wnd.$.isArray(id.metadata.elementName)) {
+                    let bFoundAnyElementName = false;
+                    for (let i = 0; i < id.metadata.elementName.length; i++) {
+                        if (aClassArray.indexOf(id.metadata.elementName[i]) != -1) {
+                            bFoundAnyElementName = true;
+                            break;
+                        }
+                    }
+                    if (!bFoundAnyElementName) {
+                        return false;
+                    }
+                } else if (aClassArray.indexOf(id.metadata.elementName) === -1) {
+                    return false;
+                }
             }
             if (id.metadata.componentName && id.metadata.componentName !== _getOwnerComponent(oItem)) {
                 return false;
             }
         }
+
         if (id.domChildWith && id.domChildWith.length > 0) {
             let oDomRef = oItem.getDomRef();
             if (!oDomRef) {
@@ -256,36 +295,109 @@ export default Selector(id => {
             }
         }
 
-        if (id.identifier) {
-            if (id.identifier.ui5Id && id.identifier.ui5Id !== _getUi5Id(oItem)) {
-                return false;
-            }
-            if (id.identifier.ui5LocalId && id.identifier.ui5LocalId !== _getUi5LocalId(oItem)) {
-                return false;
-            }
-            if (id.identifier.lumiraId && id.identifier.lumiraId !== _getLumiraId(oItem)) {
-                return false;
-            }
-            if (id.identifier.id) {
-                if (id.identifier.id !== _getUi5Id(oItem) || id.identifier.id !== _getUi5LocalId(oItem) || id.identifier.id !== _getLumiraId(oItem)) {
-                    return false;
-                }
-            }
-        }
+        if (id.parentAnyLevel) {
+            //not all elements are supported - we will only take care of the absolute basics here (property, id and element matching for the moment..)
+            let bFoundParentId = false;
+            let bFoundParentElementName = false;
+            let bFoundParentProperty = false;
 
-        if (typeof id.insideATable !== "undefined") {
-            var bIsInTable = false;
-            var oParent = oItem.getParent();
+            let oParent = oItem.getParent();
+
+            let sParentElementName = id.parentAnyLevel.metadata && id.parentAnyLevel.metadata.element ? id.parentAnyLevel.metadata.element : null;
+            let sParentId = id.parentAnyLevel.identifier && id.parentAnyLevel.identifier.id ? id.parentAnyLevel.identifier.id : null;
+            let oParentProp = id.parentAnyLevel.property ? id.parentAnyLevel.property : null;
+
+
             while (oParent) {
-                var sControl = oParent.getMetadata()._sClassName;
-                if (sControl === "sap.m.Table" || sControl === "sap.ui.table.Table" || sControl === "sap.ui.table.TreeTable" || sControl === "sap.zen.crosstab.Crosstab") {
-                    bIsInTable = true;
+                bFoundParentElementName = sParentElementName === null;
+                bFoundParentId = sParentId === null;
+                bFoundParentProperty = oParentProp === null;
+
+                if (sParentId) {
+                    if (sParentId === _getUi5Id(oParent) || sParentId === _getUi5LocalId(oParent) || sParentId === _getLumiraId(oParent)) {
+                        bFoundParentId = true;
+                    }
+                }
+                if (sParentElementName) {
+                    if (sParentElementName === oParent.getMetadata()._sClassName) {
+                        bFoundParentElementName = true;
+                    }
+                }
+                if (oParentProp) {
+                    let bFoundNegativePropFound = false;
+                    for (let sProperty in oParentProp) {
+                        if (!oParent["get" + sProperty.charAt(0).toUpperCase() + sProperty.substr(1)]) {
+                            bFoundNegativePropFound = true;
+                            break;
+                        }
+                        let sPropertyValueItem = oParent["get" + sProperty.charAt(0).toUpperCase() + sProperty.substr(1)]();
+                        let sPropertyValueSearch = oParentProp[sProperty];
+                        if (sPropertyValueItem !== sPropertyValueSearch) {
+                            bFoundNegativePropFound = true;
+                            break;
+                        }
+                    }
+                    bFoundParentProperty = bFoundNegativePropFound === false;
+                }
+
+                if (bFoundParentElementName === true && bFoundParentId === true && bFoundParentProperty === true) {
                     break;
                 }
                 oParent = oParent.getParent();
             }
-            if (bIsInTable !== id.insideATable) {
+
+            if (bFoundParentElementName != true || bFoundParentId != true || bFoundParentProperty != true) {
                 return false;
+            }
+        }
+
+        if (typeof id.tableSettings !== "undefined") {
+            if (typeof id.tableSettings.insideATable !== "undefined" ||
+                typeof id.tableSettings.tableRow !== "undefined" || typeof id.tableSettings.tableCol !== "undefined") {
+                var bIsInTable = false;
+                let iTableRow = 0;
+                let iTableCol = 0;
+                let aParentIds = [];
+                aParentIds.push(oItem.getId());
+                var oParent = oItem.getParent();
+                while (oParent) {
+                    aParentIds.push(oParent.getId());
+                    var sControl = oParent.getMetadata()._sClassName;
+                    if (sControl === "sap.m.Table" || sControl === "sap.ui.table.Table" || sControl === "sap.m.List" || sControl === "sap.m.PlanningCalendar" ||
+                        sControl === "sap.ui.table.TreeTable" || sControl === "sap.zen.crosstab.Crosstab") {
+                        bIsInTable = true;
+
+                        if (typeof id.tableSettings.tableRow !== "undefined" || typeof id.tableSettings.tableCol !== "undefined") {
+                            let aRows = oParent.getAggregation("rows") ? oParent.getAggregation("rows") : oParent.getAggregation("items");
+                            if (aRows) {
+                                for (let j = 0; j < aRows.length; j++) {
+                                    if (aParentIds.indexOf(aRows[j].getId()) !== -1) {
+                                        iTableRow = j;
+                                        iTableCol = 0;
+                                        let aCells = aRows[j].getCells() ? aRows[j].getCells() : [];
+                                        for (let x = 0; x < aCells.length; x++) {
+                                            if (aParentIds.indexOf(aCells[x].getId()) !== -1) {
+                                                iTableCol = x;
+                                                break;
+                                            }
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if ((typeof id.tableSettings.tableRow !== "undefined" && id.tableSettings.tableRow !== iTableRow) ||
+                                (typeof id.tableSettings.tableCol !== "undefined" && id.tableSettings.tableCol !== iTableCol)) {
+                                return false;
+                            }
+                        }
+                        break;
+                    }
+                    oParent = oParent.getParent();
+                }
+                if (bIsInTable !== id.tableSettings.insideATable) {
+                    return false;
+                }
             }
         }
 
@@ -414,6 +526,7 @@ export default Selector(id => {
 
         if (id.smartContext) {
             var sModelName = "";
+            var bAnyBinding = false;
             //"smart": maybe enable to search for more specific bindings based on the control - i.e. for texts, search for texts..
             for (let sBinding in oItem.mBindingInfos) {
                 if (!oItem.mBindingInfos[sBinding].parts) {
@@ -421,6 +534,24 @@ export default Selector(id => {
                 }
                 for (let i = 0; i < oItem.mBindingInfos[sBinding].parts.length; i++) {
                     sModelName = oItem.mBindingInfos[sBinding].parts[i].model;
+                }
+                bAnyBinding = true;
+            }
+            if (!bAnyBinding) {
+                //search up the binding context hierarchy (first=direct element bindings, than bindings coming directly from parent, than via propagated views/elements)
+                let bndgCtx = {};
+                if (!$.isEmptyObject(oItem.mElementBindingContexts)) {
+                    bndgCtx = oItem.mElementBindingContexts;
+                } else if (!$.isEmptyObject(oItem.oBindingContexts)) {
+                    bndgCtx = oItem.oBindingContexts;
+                } else if (!$.isEmptyObject(oItem.oPropagatedProperties.oBindingContexts)) {
+                    bndgCtx = oItem.oPropagatedProperties.oBindingContexts;
+                } else {
+                    return false;
+                }
+                for (let sModelNameLoc in bndgCtx) {
+                    sModelName = sModelNameLoc;
+                    break;
                 }
             }
             let oCtx = oItem.getBindingContext(sModelName);
@@ -433,6 +564,20 @@ export default Selector(id => {
             }
             for (let sAttr in id.smartContext) {
                 if (id.smartContext[sAttr] !== oObjectCompare[sAttr]) {
+                    return false;
+                }
+            }
+        }
+
+        if (id.viewProperty) {
+            let oView = _getParentWithDom(oItem, 1, true);
+            if (oView) {
+                var sViewProp = oView.getProperty("viewName");
+                var sLocalView = sViewProp.split(".").pop();
+                if (id.viewProperty.localViewName && id.viewProperty.localViewName !== sLocalView) {
+                    return false;
+                }
+                if (id.viewProperty.viewName && id.viewProperty.viewName !== sViewProp) {
                     return false;
                 }
             }
@@ -493,6 +638,11 @@ export default Selector(id => {
                 return [];
             }
         }
+    }
+    
+    //1.2: early exit in case of global busy indicator..
+    if (_wnd.$("#sap-ui-blocklayer-popup").css("display") === "block") {
+        return [];
     }
 
     let fnFindByComplexParameter = function (id) {
@@ -563,6 +713,7 @@ export default Selector(id => {
                 sSelectorStringForJQuery = sSelectorStringForJQuery + ",";
             }
             sSelectorStringForJQuery += "*[id$='" + sIdFound + "']";
+            break;
         }
         if (sSelectorStringForJQuery.length) {
             aItem = _wnd.$(sSelectorStringForJQuery);
@@ -607,21 +758,6 @@ export default Selector(id => {
             }
         }
     } else {
-        //adjust shortcuts..
-        if (id.elementName) {
-            id.metadata = id.metadata ? id.metadata : {};
-            id.metadata.elementName = id.elementName;
-        }
-        if (id.parentIdL2) {
-            id.parentL2 = id.parentL2 ? id.parentL2 : {};
-            id.parentL2.identifier = id.parentL2.identifier ? id.parentL2.identifier : {};
-            id.parentL2.identifier.ui5LocalId = id.parentIdL2;
-        }
-        if (id.parentId) {
-            id.parent = id.parent ? id.parent : {};
-            id.parent.identifier = id.parent.identifier ? id.parent.identifier : {};
-            id.parent.identifier.ui5LocalId = id.parentId;
-        }
         aItem = fnFindByComplexParameter(id);
     }
 
@@ -640,6 +776,10 @@ export default Selector(id => {
                 aItem = [oElement];
             }
         }
+    }
+
+    if (typeof id.domChildWith !== "undefined") {
+        aItem = _wnd.$("*[id$='" + aItem.get(0).id + id.domChildWith + "']");
     }
 
     //---postprocessing - return only my item
@@ -949,7 +1089,7 @@ export default Selector(id => {
                             return {
                                 id: e.id,
                                 name: e.name
-                            }
+                            };
                         }),
                         measures: aFeedItems[i].values.filter(function (e) {
                             return e.type === "measure";
@@ -957,8 +1097,8 @@ export default Selector(id => {
                             return {
                                 id: e.id,
                                 name: e.name
-                            }
-                        }),
+                            };
+                        })
                     });
                 }
 
@@ -1025,7 +1165,7 @@ export default Selector(id => {
                     oReturn.finalLength = oBndg.getLength();
                     oReturn.data = [];
                     for (let i = 0; i < aContext.length; i++) {
-                        oReturn.data.push(aContext[i]).getObject();
+                        oReturn.data.push(aContext[i].getObject());
                     }
                 }
             } else if (oItem.getMetadata()._sClassName === "sap.ui.table.Table" || oItem.getMetadata()._sClassName === "sap.ui.table.TreeTable") {
@@ -1035,7 +1175,7 @@ export default Selector(id => {
                     oReturn.finalLength = oBndg.getLength();
                     oReturn.data = [];
                     for (let i = 0; i < aContext.length; i++) {
-                        oReturn.data.push(aContext[i]).getObject();
+                        oReturn.data.push(aContext[i].getObject());
                     }
                 }
             } else if (oItem.getMetadata()._sClassName === "sap.m.MultiInput") {
@@ -1094,7 +1234,9 @@ export default Selector(id => {
                 },
                 control: null,
                 dom: null,
-                insideATable: false
+                tableSettings: {
+                    insideATable: false
+                }
             };
             bFull = typeof bFull === "undefined" ? true : bFull;
 
@@ -1291,18 +1433,39 @@ export default Selector(id => {
                 oReturn.tableData = fnGetTableData(oItem);
             }
 
+            let aParentIds = [];
+            aParentIds.push(oItem.getId());
             let oParent = oItem.getParent();
             while (oParent) {
+                aParentIds.push(oParent.getId());
                 var sControl = oParent.getMetadata()._sClassName;
-                if (sControl === "sap.m.Table" || sControl === "sap.ui.table.Table" || sControl === "sap.ui.table.TreeTable" || sControl === "sap.zen.crosstab.Crosstab") {
-                    oReturn.insideATable = true;
+                if (sControl === "sap.m.Table" || sControl === "sap.m.PlanningCalendar" || sControl === "sap.m.List" || sControl === "sap.ui.table.Table" ||
+                    sControl === "sap.ui.table.TreeTable" || sControl === "sap.zen.crosstab.Crosstab") {
+                    oReturn.tableSettings.insideATable = true;
+
+                    let aRows = oParent.getAggregation("rows") ? oParent.getAggregation("rows") : oParent.getAggregation("items");
+                    if (aRows) {
+                        for (let j = 0; j < aRows.length; j++) {
+                            if (aParentIds.indexOf(aRows[j].getId()) !== -1) {
+                                oReturn.tableSettings.tableRow = j;
+                                oReturn.tableSettings.tableCol = 0;
+                                let aCells = aRows[j].getCells() ? aRows[j].getCells() : [];
+                                for (let x = 0; x < aCells.length; x++) {
+                                    if (aParentIds.indexOf(aCells[x].getId()) !== -1) {
+                                        oReturn.tableSettings.tableCol = x;
+                                        break;
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    }
                     break;
                 }
                 oParent = oParent.getParent();
             }
 
             //get model information..
-            let oMetadata = oItem.getMetadata();
             oReturn.model = {};
 
             //return length of all aggregations
