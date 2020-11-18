@@ -164,7 +164,7 @@ declare global {
         tableSettings?: UI5TableSettings;
     }
 
-    type UI5SelectorCallback = ({ element }: { element: any; }) => UI5SelectorDef;
+    type UI5DataCallback = (element: UI5SelectorDef) => any;
 
     interface Selector {
         /**
@@ -175,7 +175,7 @@ declare global {
          * or without arrow function
          * t.expect( UI5Selector("id").getUI5(function(e) { return e.property.selectedKey }).eql(3) )
          */
-        getUI5(filter?: UI5SelectorCallback): UI5SelectorDef;
+        getUI5(filter?: UI5DataCallback): UI5SelectorDef | any;
     }
 
     interface SupportAssistantResultLine {

@@ -315,6 +315,13 @@ export default Selector(id => {
                     }
                     oCur = oCur.getParent();
                 }
+
+                var oStaticArea = _wnd.sap.ui.getCore().getStaticAreaRef();
+                var bControlIsInStaticArea = _wnd.$.contains(oStaticArea, oItem.getDomRef());
+                var bOpenStaticBlockingLayer = _wnd.$("#sap-ui-blocklayer-popup").is(":visible");
+                if (!bControlIsInStaticArea && bOpenStaticBlockingLayer) {
+                    return false; //blocked and not interactable
+                }
             }
         }
 
@@ -661,10 +668,6 @@ export default Selector(id => {
                 return [];
             }
         }
-    }
-    //1.2: early exit in case of global busy indicator..
-    if (_wnd.$("#sap-ui-blocklayer-popup").css("display") === "block") {
-        return [];
     }
 
     let fnFindByComplexParameter = function (id) {
@@ -1272,8 +1275,6 @@ export default Selector(id => {
                 oDomNode = oItem.getDomRef();
             }
 
-            oReturn.control = oItem;
-            oReturn.dom = oDomNode;
             oReturn.identifier.ui5Id = _getUi5Id(oItem);
             oReturn.identifier.ui5LocalId = _getUi5LocalId(oItem);
 
@@ -1596,16 +1597,6 @@ export default Selector(id => {
         oReturn.itemdata = fnGetElementInformation(_getItemForItem(oItem));
 
         ///POSTPROCESSING ----------------------
-        delete oReturn.control;
-        delete oReturn.dom;
-        delete oReturn.parent.control;
-        delete oReturn.parent.dom;
-        delete oReturn.parentL2.control;
-        delete oReturn.parentL2.dom;
-        delete oReturn.parentL3.control;
-        delete oReturn.parentL3.dom;
-        delete oReturn.parentL4.control;
-        delete oReturn.parentL4.dom;
 
         const element = oReturn;
         if (typeof fn === 'function') {
