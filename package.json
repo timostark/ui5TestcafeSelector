@@ -1,6 +1,6 @@
 {
   "name": "ui5-testcafe-selector",
-  "version": "0.3.111",
+  "version": "0.3.114",
   "description": "Testcafe Selector for UI5",
   "repository": "https://github.com/timostark/ui5TestcafeSelector",
   "main": "lib/index",

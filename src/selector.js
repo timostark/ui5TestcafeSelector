@@ -383,10 +383,13 @@ export default Selector(id => {
 
         if (typeof id.tableSettings !== "undefined") {
             if (typeof id.tableSettings.insideATable !== "undefined" ||
-                typeof id.tableSettings.tableRow !== "undefined" || typeof id.tableSettings.tableCol !== "undefined") {
+                typeof id.tableSettings.tableRow !== "undefined" || typeof id.tableSettings.tableCol !== "undefined" || typeof id.tableSettings.tableColId !== "undefined"
+                || typeof id.tableSettings.tableColDescr !== "undefined") {
                 var bIsInTable = false;
                 let iTableRow = 0;
                 let iTableCol = 0;
+                let sTableColId = "";
+                let sTableColDescr = "";
                 let aParentIds = [];
                 aParentIds.push(oItem.getId());
                 var oParent = oItem.getParent();
@@ -408,6 +411,12 @@ export default Selector(id => {
                                         for (let x = 0; x < aCells.length; x++) {
                                             if (aParentIds.indexOf(aCells[x].getId()) !== -1) {
                                                 iTableCol = x;
+
+                                                if (oParent.getColumns) {
+                                                    var oCol = oParent.getColumns().filter(e => e.getVisible())[x];
+                                                    sTableColId = _getUi5Id(oCol);
+                                                    sTableColDescr = oCol.getLabel ? oCol.getLabel().getText() : "";
+                                                }
                                                 break;
                                             }
                                         }
@@ -418,6 +427,10 @@ export default Selector(id => {
 
                             if ((typeof id.tableSettings.tableRow !== "undefined" && id.tableSettings.tableRow !== iTableRow) ||
                                 (typeof id.tableSettings.tableCol !== "undefined" && id.tableSettings.tableCol !== iTableCol)) {
+                                return false;
+                            }
+                            if ((typeof id.tableSettings.tableColId !== "undefined" && id.tableSettings.tableColId !== sTableColId) ||
+                                (typeof id.tableSettings.tableColDescr !== "undefined" && id.tableSettings.tableColDescr !== sTableColDescr)) {
                                 return false;
                             }
                         }
@@ -555,33 +568,56 @@ export default Selector(id => {
         }
 
         if (id.smartContext) {
-            var sModelName = "";
             var bAnyBinding = false;
+            var oCurParent = oItem;
+            var sModelName = "";
+
             //"smart": maybe enable to search for more specific bindings based on the control - i.e. for texts, search for texts..
-            for (let sBinding in oItem.mBindingInfos) {
-                if (!oItem.mBindingInfos[sBinding].parts) {
-                    continue;
-                }
-                for (let i = 0; i < oItem.mBindingInfos[sBinding].parts.length; i++) {
-                    sModelName = oItem.mBindingInfos[sBinding].parts[i].model;
-                }
-                bAnyBinding = true;
-            }
-            if (!bAnyBinding) {
-                //search up the binding context hierarchy (first=direct element bindings, than bindings coming directly from parent, than via propagated views/elements)
-                let bndgCtx = {};
-                if (!$.isEmptyObject(oItem.mElementBindingContexts)) {
-                    bndgCtx = oItem.mElementBindingContexts;
-                } else if (!$.isEmptyObject(oItem.oBindingContexts)) {
-                    bndgCtx = oItem.oBindingContexts;
-                } else if (!$.isEmptyObject(oItem.oPropagatedProperties.oBindingContexts)) {
-                    bndgCtx = oItem.oPropagatedProperties.oBindingContexts;
-                } else {
-                    return false;
-                }
-                for (let sModelNameLoc in bndgCtx) {
-                    sModelName = sModelNameLoc;
+            while (oCurParent) {
+                var sControlParent = oCurParent.getMetadata()._sClassName;
+                if (sControlParent === "sap.m.Table" || sControlParent === "sap.m.PlanningCalendar" || sControlParent === "sap.m.Tree" || sControlParent === "sap.m.List" || sControlParent === "sap.ui.table.Table" || sControlParent === "sap.ui.table.TreeTable" || sControlParent === "sap.zen.crosstab.Crosstab") {
+                    if (oCurParent.mBindingInfos["items"] || oCurParent.mBindingInfos["rows"]) {
+                        var sBinding = oCurParent.mBindingInfos["items"] ? "items" : "rows";
+                        var oBndg = oCurParent.mBindingInfos[sBinding];
+                        if (oBndg.parts) {
+                            for (let i = 0; i < oBndg.parts.length; i++) {
+                                sModelName = oItem.mBindingInfos[sBinding].parts[i].model;
+                                break;
+                            }
+                        } else {
+                            sModelName = oBndg.model;
+                        }
+                    }
                     break;
+                }
+                oCurParent = oCurParent.getParent();
+            }
+            if (sModelName.length === 0) {
+                for (let sBinding in oItem.mBindingInfos) {
+                    if (!oItem.mBindingInfos[sBinding].parts) {
+                        continue;
+                    }
+                    for (let i = 0; i < oItem.mBindingInfos[sBinding].parts.length; i++) {
+                        sModelName = oItem.mBindingInfos[sBinding].parts[i].model;
+                    }
+                    bAnyBinding = true;
+                }
+                if (!bAnyBinding) {
+                    //search up the binding context hierarchy (first=direct element bindings, than bindings coming directly from parent, than via propagated views/elements)
+                    let bndgCtx = {};
+                    if (!$.isEmptyObject(oItem.mElementBindingContexts)) {
+                        bndgCtx = oItem.mElementBindingContexts;
+                    } else if (!$.isEmptyObject(oItem.oBindingContexts)) {
+                        bndgCtx = oItem.oBindingContexts;
+                    } else if (!$.isEmptyObject(oItem.oPropagatedProperties.oBindingContexts)) {
+                        bndgCtx = oItem.oPropagatedProperties.oBindingContexts;
+                    } else {
+                        return false;
+                    }
+                    for (let sModelNameLoc in bndgCtx) {
+                        sModelName = sModelNameLoc;
+                        break;
+                    }
                 }
             }
             let oCtx = oItem.getBindingContext(sModelName);
@@ -1476,6 +1512,11 @@ export default Selector(id => {
                                 for (let x = 0; x < aCells.length; x++) {
                                     if (aParentIds.indexOf(aCells[x].getId()) !== -1) {
                                         oReturn.tableSettings.tableCol = x;
+                                        if (oParent.getColumns) {
+                                            var oCol = oParent.getColumns().filter(e => e.getVisible())[x];
+                                            oReturn.tableSettings.tableColId = _getUi5Id(oCol);
+                                            oReturn.tableSettings.tableColDescr = oCol.getLabel ? oCol.getLabel().getText() : "";
+                                        }
                                         break;
                                     }
                                 }
