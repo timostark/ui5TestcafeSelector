@@ -1539,7 +1539,7 @@ export default Selector(id => {
                                     iVisibleColCounter = iVisibleColCounter + 1;
                                     if (aParentIds.indexOf(aCells[x].getId()) !== -1) {
                                         oReturn.tableSettings.tableCol = iVisibleColCounter;
-                                        if (oParent.getColumns) {
+                                        if (aCol && aCol.length && aCol.length > x) {
                                             oReturn.tableSettings.tableColId = _getUi5Id(aCol[x]);
                                             oReturn.tableSettings.tableColDescr = aCol[x].getLabel ? aCol[x].getLabel().getText() : "";
                                         }
