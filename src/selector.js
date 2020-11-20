@@ -595,11 +595,11 @@ export default Selector(id => {
                         var oBndg = oCurParent.mBindingInfos[sBinding];
                         if (oBndg.parts) {
                             for (let i = 0; i < oBndg.parts.length; i++) {
-                                sModelName = oItem.mBindingInfos[sBinding].parts[i].model;
+                                sModelName = oItem.mBindingInfos[sBinding].parts[i].model ? oItem.mBindingInfos[sBinding].parts[i].model : "undefined";
                                 break;
                             }
                         } else {
-                            sModelName = oBndg.model;
+                            sModelName = oBndg.model ? oBndg.model : "undefined";
                         }
                     }
                     break;
@@ -612,7 +612,7 @@ export default Selector(id => {
                         continue;
                     }
                     for (let i = 0; i < oItem.mBindingInfos[sBinding].parts.length; i++) {
-                        sModelName = oItem.mBindingInfos[sBinding].parts[i].model;
+                        sModelName = oItem.mBindingInfos[sBinding].parts[i].model ? oItem.mBindingInfos[sBinding].parts[i].model : "undefined";
                     }
                     bAnyBinding = true;
                 }
@@ -629,12 +629,12 @@ export default Selector(id => {
                         return false;
                     }
                     for (let sModelNameLoc in bndgCtx) {
-                        sModelName = sModelNameLoc;
+                        sModelName = sModelNameLoc ? sModelNameLoc : "undefined";
                         break;
                     }
                 }
             }
-            let oCtx = oItem.getBindingContext(sModelName);
+            let oCtx = oItem.getBindingContext(sModelName === "undefined" ? undefined : sModelName);
             if (!oCtx) {
                 return false;
             }
