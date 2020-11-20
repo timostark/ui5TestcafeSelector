@@ -40,7 +40,9 @@ declare global {
     }
 
     interface UI5BindingDefProperty {
-        path: string
+        path: string,
+        pathRelative: string,
+        model: string
     }
 
     interface UI5PropertyDefMetadata {

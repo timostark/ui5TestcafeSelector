@@ -58,9 +58,11 @@ export default Selector(id => {
             };
 
             oReturn.path = sPathPre + oReturn.path;
+            oReturn.pathRelative = oReturn.path;
         } else {
             oReturn = {
                 path: oBindingInfo.path,
+                pathRelative: oBindingInfo.path,
                 model: oRelevantPart.model
             };
         }
@@ -461,17 +463,23 @@ export default Selector(id => {
             for (let sBinding in id.binding) {
                 let oBndgInfo = fnGetBindingInformation(oItem, sBinding);
 
-                if (oBndgInfo.path !== id.binding[sBinding].path) {
-                    if (oItem.getMetadata().getElementName() === "sap.m.Label") {
-                        if (oItem.getParent() && oItem.getParent().getMetadata()._sClassName === "sap.ui.layout.form.FormElement") {
-                            let oParentBndg = oItem.getParent().getBinding("label");
-                            if (!oParentBndg || oParentBndg.getPath() !== id.binding[sBinding].path) {
+                if (typeof oBndgInfo.path !== "undefined") {
+                    if (oBndgInfo.path !== id.binding[sBinding].path) {
+                        if (oItem.getMetadata().getElementName() === "sap.m.Label") {
+                            if (oItem.getParent() && oItem.getParent().getMetadata()._sClassName === "sap.ui.layout.form.FormElement") {
+                                let oParentBndg = oItem.getParent().getBinding("label");
+                                if (!oParentBndg || oParentBndg.getPath() !== id.binding[sBinding].path) {
+                                    return false;
+                                }
+                            } else {
                                 return false;
                             }
                         } else {
                             return false;
                         }
-                    } else {
+                    }
+                } else if (typeof oBndgInfo.pathRelative !== "undefined") {
+                    if (oBndgInfo.pathRelative !== id.binding[sBinding].pathRelative) {
                         return false;
                     }
                 }
@@ -1067,9 +1075,11 @@ export default Selector(id => {
                 };
 
                 oReturn.path = sPathPre + oReturn.path;
+                oReturn.pathRelative = oReturn.path;
             } else {
                 oReturn = {
                     path: oBindingInfo.path,
+                    pathRelative: oBindingInfo.path,
                     model: oRelevantPart.model
                 };
             }
