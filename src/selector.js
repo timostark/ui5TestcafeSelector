@@ -406,20 +406,29 @@ export default Selector(id => {
 
                         if (typeof id.tableSettings.tableRow !== "undefined" || typeof id.tableSettings.tableCol !== "undefined") {
                             let aRows = oParent.getAggregation("rows") ? oParent.getAggregation("rows") : oParent.getAggregation("items");
+
+                            var aCol = oParent.getColumns ? [] : oParent.getColumns().filter(e => e.getVisible());
+
                             if (aRows) {
                                 for (let j = 0; j < aRows.length; j++) {
                                     if (aParentIds.indexOf(aRows[j].getId()) !== -1) {
                                         iTableRow = j;
                                         iTableCol = 0;
+                                        var iVisibleColCounter = 0;
                                         let aCells = aRows[j].getCells() ? aRows[j].getCells() : [];
                                         for (let x = 0; x < aCells.length; x++) {
+                                            if (aCol && aCol.length && aCol.length > x) {
+                                                if (aCol[x].getVisible() === false) {
+                                                    continue;
+                                                }
+                                            }
+                                            iVisibleColCounter = iVisibleColCounter + 1;
                                             if (aParentIds.indexOf(aCells[x].getId()) !== -1) {
-                                                iTableCol = x;
+                                                iTableCol = iVisibleColCounter;
 
-                                                if (oParent.getColumns) {
-                                                    var oCol = oParent.getColumns().filter(e => e.getVisible())[x];
-                                                    sTableColId = _getUi5Id(oCol);
-                                                    sTableColDescr = oCol.getLabel ? oCol.getLabel().getText() : "";
+                                                if (aCol && aCol.length && aCol.length > x) {
+                                                    sTableColId = _getUi5Id(aCol[x]);
+                                                    sTableColDescr = aCol[x].getLabel ? aCol[x].getLabel().getText() : "";
                                                 }
                                                 break;
                                             }
@@ -1512,19 +1521,27 @@ export default Selector(id => {
                     oReturn.tableSettings.insideATable = true;
 
                     let aRows = oParent.getAggregation("rows") ? oParent.getAggregation("rows") : oParent.getAggregation("items");
+                    var aCol = oParent.getColumns ? [] : oParent.getColumns().filter(e => e.getVisible());
+
                     if (aRows) {
                         for (let j = 0; j < aRows.length; j++) {
                             if (aParentIds.indexOf(aRows[j].getId()) !== -1) {
                                 oReturn.tableSettings.tableRow = j;
                                 oReturn.tableSettings.tableCol = 0;
+                                var iVisibleColCounter = 0;
                                 let aCells = aRows[j].getCells() ? aRows[j].getCells() : [];
                                 for (let x = 0; x < aCells.length; x++) {
+                                    if (aCol && aCol.length && aCol.length > x) {
+                                        if (aCol[x].getVisible() === false) {
+                                            continue;
+                                        }
+                                    }
+                                    iVisibleColCounter = iVisibleColCounter + 1;
                                     if (aParentIds.indexOf(aCells[x].getId()) !== -1) {
-                                        oReturn.tableSettings.tableCol = x;
+                                        oReturn.tableSettings.tableCol = iVisibleColCounter;
                                         if (oParent.getColumns) {
-                                            var oCol = oParent.getColumns().filter(e => e.getVisible())[x];
-                                            oReturn.tableSettings.tableColId = _getUi5Id(oCol);
-                                            oReturn.tableSettings.tableColDescr = oCol.getLabel ? oCol.getLabel().getText() : "";
+                                            oReturn.tableSettings.tableColId = _getUi5Id(aCol[x]);
+                                            oReturn.tableSettings.tableColDescr = aCol[x].getLabel ? aCol[x].getLabel().getText() : "";
                                         }
                                         break;
                                     }
