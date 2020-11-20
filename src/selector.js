@@ -422,7 +422,6 @@ export default Selector(id => {
                                                     continue;
                                                 }
                                             }
-                                            iVisibleColCounter = iVisibleColCounter + 1;
                                             if (aParentIds.indexOf(aCells[x].getId()) !== -1) {
                                                 iTableCol = iVisibleColCounter;
 
@@ -432,6 +431,7 @@ export default Selector(id => {
                                                 }
                                                 break;
                                             }
+                                            iVisibleColCounter = iVisibleColCounter + 1;
                                         }
                                         break;
                                     }
@@ -1536,7 +1536,6 @@ export default Selector(id => {
                                             continue;
                                         }
                                     }
-                                    iVisibleColCounter = iVisibleColCounter + 1;
                                     if (aParentIds.indexOf(aCells[x].getId()) !== -1) {
                                         oReturn.tableSettings.tableCol = iVisibleColCounter;
                                         if (aCol && aCol.length && aCol.length > x) {
@@ -1545,6 +1544,7 @@ export default Selector(id => {
                                         }
                                         break;
                                     }
+                                    iVisibleColCounter = iVisibleColCounter + 1;
                                 }
                                 break;
                             }
