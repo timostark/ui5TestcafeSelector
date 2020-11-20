@@ -407,7 +407,7 @@ export default Selector(id => {
                         if (typeof id.tableSettings.tableRow !== "undefined" || typeof id.tableSettings.tableCol !== "undefined") {
                             let aRows = oParent.getAggregation("rows") ? oParent.getAggregation("rows") : oParent.getAggregation("items");
 
-                            var aCol = oParent.getColumns ? oParent.getColumns().filter(e => e.getVisible()) : [];
+                            var aCol = oParent.getColumns ? oParent.getColumns() : [];
 
                             if (aRows) {
                                 for (let j = 0; j < aRows.length; j++) {
@@ -1521,7 +1521,7 @@ export default Selector(id => {
                     oReturn.tableSettings.insideATable = true;
 
                     let aRows = oParent.getAggregation("rows") ? oParent.getAggregation("rows") : oParent.getAggregation("items");
-                    var aCol = oParent.getColumns ? oParent.getColumns().filter(e => e.getVisible()) : [];
+                    var aCol = oParent.getColumns ? oParent.getColumns() : [];
 
                     if (aRows) {
                         for (let j = 0; j < aRows.length; j++) {
