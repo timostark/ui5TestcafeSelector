@@ -415,7 +415,7 @@ export default Selector(id => {
                                         iTableRow = j;
                                         iTableCol = 0;
                                         var iVisibleColCounter = 0;
-                                        let aCells = aRows[j].getCells() ? aRows[j].getCells() : [];
+                                        let aCells = aRows[j].getCells ? aRows[j].getCells() : [];
                                         for (let x = 0; x < aCells.length; x++) {
                                             if (aCol && aCol.length && aCol.length > x) {
                                                 if (aCol[x].getVisible() === false) {
@@ -731,6 +731,12 @@ export default Selector(id => {
         let sSelectorStringForJQuery = "";
         for (let sElement in aElements) {
             let oItem = aElements[sElement];
+            if (window.__ui5SelectorDebug) {
+                if (oItem.getId().substr(window.__ui5SelectorDebug) !== -1) {
+                    // eslint-disable-next-line no-debugger
+                    debugger;
+                }
+            }
             bFound = true;
             bFound = _checkItem(oItem, id);
             if (bFound === false) {
@@ -1529,7 +1535,7 @@ export default Selector(id => {
                                 oReturn.tableSettings.tableRow = j;
                                 oReturn.tableSettings.tableCol = 0;
                                 var iVisibleColCounter = 0;
-                                let aCells = aRows[j].getCells() ? aRows[j].getCells() : [];
+                                let aCells = aRows[j].getCells ? aRows[j].getCells() : [];
                                 for (let x = 0; x < aCells.length; x++) {
                                     if (aCol && aCol.length && aCol.length > x) {
                                         if (aCol[x].getVisible() === false) {
