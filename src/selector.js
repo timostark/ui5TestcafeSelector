@@ -732,7 +732,7 @@ export default Selector(id => {
         for (let sElement in aElements) {
             let oItem = aElements[sElement];
             if (window.__ui5SelectorDebug) {
-                if (oItem.getId().substr(window.__ui5SelectorDebug) !== -1) {
+                if (oItem.getId().indexOf(window.__ui5SelectorDebug) !== -1) {
                     // eslint-disable-next-line no-debugger
                     debugger;
                 }
