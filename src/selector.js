@@ -684,7 +684,7 @@ export default Selector(id => {
                     } else if (sPropertyType == "string") {
                         sPropertyValueSearch = sPropertyValueSearch.toString();
                     }
-                } catch {
+                } catch (e) {
                     sPropertyValueSearch = sPropertyValueSearch;
                 }
 
