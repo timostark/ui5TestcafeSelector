@@ -684,8 +684,9 @@ export default Selector(id => {
                     } else if (sPropertyType == "string") {
                         sPropertyValueSearch = sPropertyValueSearch.toString();
                     }
-                    // eslint-disable-next-line no-empty
-                } catch { }
+                } catch {
+                    sPropertyValueSearch = sPropertyValueSearch;
+                }
 
                 if (sPropertyValueItem !== sPropertyValueSearch) {
                     bFound = false;
