@@ -670,8 +670,23 @@ export default Selector(id => {
                     bFound = false;
                     break;
                 }
+
                 let sPropertyValueItem = oItem["get" + sProperty.charAt(0).toUpperCase() + sProperty.substr(1)]();
                 let sPropertyValueSearch = id.property[sProperty];
+                try {
+                    var sPropertyType = oItem.getProperty(sProperty).getType().getName();
+                    if (sPropertyType == "boolean") {
+                        sPropertyValueSearch = (typeof sPropertyValueSearch === "boolean") ? sPropertyValueSearch : sPropertyValueSearch === "true";
+                    } else if (sPropertyType == "int") {
+                        sPropertyValueSearch = parseInt(sPropertyValueSearch, 10);
+                    } else if (sPropertyType == "float") {
+                        sPropertyValueSearch = parseFloat(sPropertyValueSearch);
+                    } else if (sPropertyType == "string") {
+                        sPropertyValueSearch = sPropertyValueSearch.toString();
+                    }
+                    // eslint-disable-next-line no-empty
+                } catch { }
+
                 if (sPropertyValueItem !== sPropertyValueSearch) {
                     bFound = false;
                     break;
