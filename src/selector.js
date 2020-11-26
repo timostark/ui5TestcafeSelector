@@ -414,14 +414,18 @@ export default Selector(id => {
                                     if (aParentIds.indexOf(aRows[j].getId()) !== -1) {
                                         iTableRow = j;
                                         iTableCol = 0;
+                                        var iTableColCounter = 0;
                                         var iVisibleColCounter = 0;
                                         let aCells = aRows[j].getCells ? aRows[j].getCells() : [];
                                         for (let x = 0; x < aCells.length; x++) {
-                                            if (aCol && aCol.length && aCol.length > x) {
-                                                if (aCol[x].getVisible() === false) {
+                                            if (aCol && aCol.length && aCol.length > iTableColCounter) {
+                                                if (aCol[iTableColCounter].getVisible() === false) {
+                                                    iTableColCounter = iTableColCounter + 1;
+                                                    x = x - 1;
                                                     continue;
                                                 }
                                             }
+                                            iTableColCounter = iTableColCounter + 1;
                                             if (aParentIds.indexOf(aCells[x].getId()) !== -1) {
                                                 iTableCol = iVisibleColCounter;
 
@@ -1551,10 +1555,13 @@ export default Selector(id => {
                                 oReturn.tableSettings.tableRow = j;
                                 oReturn.tableSettings.tableCol = 0;
                                 var iVisibleColCounter = 0;
+                                var iColCounter = 0;
                                 let aCells = aRows[j].getCells ? aRows[j].getCells() : [];
                                 for (let x = 0; x < aCells.length; x++) {
-                                    if (aCol && aCol.length && aCol.length > x) {
-                                        if (aCol[x].getVisible() === false) {
+                                    if (aCol && aCol.length && aCol.length > iColCounter) {
+                                        if (aCol[iColCounter].getVisible() === false) {
+                                            x = x - 1;
+                                            iColCounter = iColCounter + 1;
                                             continue;
                                         }
                                     }
@@ -1566,6 +1573,7 @@ export default Selector(id => {
                                         }
                                         break;
                                     }
+                                    iColCounter = iColCounter + 1;
                                     iVisibleColCounter = iVisibleColCounter + 1;
                                 }
                                 break;
