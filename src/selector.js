@@ -1263,7 +1263,7 @@ export default Selector(id => {
 
                     oReturn.data.push(oDataLine);
                 }
-            } else if (oItem.getMetadata()._sClassName === "sap.m.Table") {
+            } else if (oItem.getMetadata()._sClassName === "sap.m.Table" || oItem.getMetadata()._sClassName === "sap.m.List") {
                 let oBndg = oItem.getBinding("items");
                 if (oBndg) {
                     let aContext = oBndg.getContexts(0, oBndg.getLength());
